@@ -15,6 +15,7 @@ import DraggableCard from './DraggableCard'
 import DropZone from './DropZone'
 import ConnectionLine from './ConnectionLine'
 import ZoomPanCanvas from './ZoomPanCanvas'
+import ResizableContainer from './ResizableContainer'
 
 export default function OrganizationBoard() {
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -22,17 +23,31 @@ export default function OrganizationBoard() {
   // カード位置の状態管理
   const [cardPositions, setCardPositions] = useState<Record<string, { x: number; y: number }>>({})
   
-  // ドラッグ可能なカードの状態管理
-  const [draggableCards, setDraggableCards] = useState({
-    businesses: ['6'],
-    tasks: ['7'],
-    executors: ['8'],
-    cxos: ['cto-card', 'cfo-card']
+  // レイヤーコンテナの状態管理
+  const [layerContainers, setLayerContainers] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({
+    'business-layer': { x: 100, y: 200, width: 450, height: 600 },
+    'management-layer': { x: 600, y: 200, width: 450, height: 600 }
   })
   
   // カード位置を取得する関数
   const getCardPosition = (cardId: string) => {
     return cardPositions[cardId] || { x: 0, y: 0 }
+  }
+
+  // レイヤーコンテナの位置変更ハンドラー
+  const handleLayerPositionChange = (id: string, x: number, y: number) => {
+    setLayerContainers(prev => ({
+      ...prev,
+      [id]: { ...prev[id], x, y }
+    }))
+  }
+
+  // レイヤーコンテナのサイズ変更ハンドラー
+  const handleLayerSizeChange = (id: string, width: number, height: number) => {
+    setLayerContainers(prev => ({
+      ...prev,
+      [id]: { ...prev[id], width, height }
+    }))
   }
 
   // サンプルデータ
@@ -167,87 +182,103 @@ export default function OrganizationBoard() {
             </div>
 
             {/* レイヤーコンテナ */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* 事業レイヤー */}
+            {/* 事業レイヤー */}
+            <ResizableContainer
+              id="business-layer"
+              title="事業レイヤー"
+              initialX={layerContainers['business-layer'].x}
+              initialY={layerContainers['business-layer'].y}
+              initialWidth={layerContainers['business-layer'].width}
+              initialHeight={layerContainers['business-layer'].height}
+              onPositionChange={handleLayerPositionChange}
+              onSizeChange={handleLayerSizeChange}
+            >
               <DropZone 
-                id="business-layer" 
+                id="business-layer-drop" 
                 acceptTypes={['business', 'task', 'executor']}
-                className=""
+                className="w-full h-full"
               >
-                <LayerCard layer={sampleLayers[0]}>
-                  {/* 事業カード - ピラミッド構造 */}
-                  <div className="flex flex-col items-center space-y-8">
-                    {sampleBusinesses.map((business) => (
-                      <div key={business.id} className="flex flex-col items-center space-y-6">
-                        {/* 事業カード */}
-                        <div id={business.id}>
-                          <DraggableCard id={business.id} type="business" persistedPosition={getCardPosition(business.id)}>
-                            <BusinessCard business={business} />
-                          </DraggableCard>
-                        </div>
-                        
-                        {/* 業務カード */}
-                        <div className="flex flex-col items-center space-y-4">
-                          {sampleTasks.filter(task => task.business_id === business.id).map((task) => (
-                            <div key={task.id} className="flex flex-col items-center space-y-3">
-                              <div id={task.id}>
-                                <DraggableCard id={task.id} type="task" persistedPosition={getCardPosition(task.id)}>
-                                  <TaskCard task={task} />
-                                </DraggableCard>
-                              </div>
-                              
-                              {/* 実行者カード */}
-                              <div className="flex flex-col items-center space-y-2">
-                                {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
-                                  <div key={executor.id} id={executor.id}>
-                                    <DraggableCard id={executor.id} type="executor" persistedPosition={getCardPosition(executor.id)}>
-                                      <ExecutorCard executor={executor} />
-                                    </DraggableCard>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                {/* 事業カード - ピラミッド構造 */}
+                <div className="flex flex-col items-center space-y-8">
+                  {sampleBusinesses.map((business) => (
+                    <div key={business.id} className="flex flex-col items-center space-y-6">
+                      {/* 事業カード */}
+                      <div id={business.id}>
+                        <DraggableCard id={business.id} type="business" persistedPosition={getCardPosition(business.id)}>
+                          <BusinessCard business={business} />
+                        </DraggableCard>
                       </div>
-                    ))}
-                  </div>
-                </LayerCard>
-              </DropZone>
-
-              {/* 経営レイヤー */}
-              <DropZone 
-                id="management-layer" 
-                acceptTypes={['task', 'executor']}
-                className=""
-              >
-                <LayerCard layer={sampleLayers[1]}>
-                  {/* 経営レイヤーの業務カード */}
-                  <div className="flex flex-col items-center space-y-6">
-                    {sampleTasks.filter(task => !task.business_id).map((task) => (
-                      <div key={task.id} className="flex flex-col items-center space-y-3">
-                        <div id={`mgmt-${task.id}`}>
-                          <DraggableCard id={`mgmt-${task.id}`} type="task" persistedPosition={getCardPosition(`mgmt-${task.id}`)}>
-                            <TaskCard task={task} />
-                          </DraggableCard>
-                        </div>
-                        
-                        {/* 実行者カード */}
-                        <div className="flex flex-col items-center space-y-2">
-                          {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
-                            <div key={executor.id} id={`mgmt-${executor.id}`}>
-                              <DraggableCard id={`mgmt-${executor.id}`} type="executor" persistedPosition={getCardPosition(`mgmt-${executor.id}`)}>
-                                <ExecutorCard executor={executor} />
+                      
+                      {/* 業務カード */}
+                      <div className="flex flex-col items-center space-y-4">
+                        {sampleTasks.filter(task => task.business_id === business.id).map((task) => (
+                          <div key={task.id} className="flex flex-col items-center space-y-3">
+                            <div id={task.id}>
+                              <DraggableCard id={task.id} type="task" persistedPosition={getCardPosition(task.id)}>
+                                <TaskCard task={task} />
                               </DraggableCard>
                             </div>
-                          ))}
-                        </div>
+                            
+                            {/* 実行者カード */}
+                            <div className="flex flex-col items-center space-y-2">
+                              {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
+                                <div key={executor.id} id={executor.id}>
+                                  <DraggableCard id={executor.id} type="executor" persistedPosition={getCardPosition(executor.id)}>
+                                    <ExecutorCard executor={executor} />
+                                  </DraggableCard>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </LayerCard>
+                    </div>
+                  ))}
+                </div>
               </DropZone>
-            </div>
+            </ResizableContainer>
+
+            {/* 経営レイヤー */}
+            <ResizableContainer
+              id="management-layer"
+              title="経営レイヤー"
+              initialX={layerContainers['management-layer'].x}
+              initialY={layerContainers['management-layer'].y}
+              initialWidth={layerContainers['management-layer'].width}
+              initialHeight={layerContainers['management-layer'].height}
+              onPositionChange={handleLayerPositionChange}
+              onSizeChange={handleLayerSizeChange}
+            >
+              <DropZone 
+                id="management-layer-drop" 
+                acceptTypes={['task', 'executor']}
+                className="w-full h-full"
+              >
+                {/* 経営レイヤーの業務カード */}
+                <div className="flex flex-col items-center space-y-6">
+                  {sampleTasks.filter(task => !task.business_id).map((task) => (
+                    <div key={task.id} className="flex flex-col items-center space-y-3">
+                      <div id={`mgmt-${task.id}`}>
+                        <DraggableCard id={`mgmt-${task.id}`} type="task" persistedPosition={getCardPosition(`mgmt-${task.id}`)}>
+                          <TaskCard task={task} />
+                        </DraggableCard>
+                      </div>
+                      
+                      {/* 実行者カード */}
+                      <div className="flex flex-col items-center space-y-2">
+                        {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
+                          <div key={executor.id} id={`mgmt-${executor.id}`}>
+                            <DraggableCard id={`mgmt-${executor.id}`} type="executor" persistedPosition={getCardPosition(`mgmt-${executor.id}`)}>
+                              <ExecutorCard executor={executor} />
+                            </DraggableCard>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </DropZone>
+            </ResizableContainer>
           </div>
 
           <DragOverlay>

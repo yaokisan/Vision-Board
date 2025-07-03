@@ -71,6 +71,11 @@ export default function ZoomPanCanvas({ children }: ZoomPanCanvasProps) {
   // 右クリックドラッグでパン
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 2) { // 右クリック
+      // ResizableContainer 内でのクリックは無視
+      const target = e.target as HTMLElement
+      if (target.closest('.resizable-container')) {
+        return
+      }
       e.preventDefault()
       setIsPanning(true)
       setLastPanPoint({ x: e.clientX, y: e.clientY })
@@ -108,8 +113,12 @@ export default function ZoomPanCanvas({ children }: ZoomPanCanvasProps) {
     }
   }, [handleWheel])
 
-  // 右クリックメニューを無効化
+  // 右クリックメニューを無効化（ResizableContainer 内では許可）
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (target.closest('.resizable-container')) {
+      return // ResizableContainer内では右クリックメニューを許可
+    }
     e.preventDefault()
   }, [])
 
@@ -133,8 +142,8 @@ export default function ZoomPanCanvas({ children }: ZoomPanCanvasProps) {
       {/* メインキャンバス */}
       <div
         ref={canvasRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing"
-        style={isPanning ? { cursor: 'grabbing' } : { cursor: 'grab' }}
+        className="w-full h-full"
+        style={isPanning ? { cursor: 'grabbing' } : { cursor: 'default' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
