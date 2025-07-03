@@ -191,7 +191,7 @@ export default function ResizableContainer({
       </div>
 
       {/* コンテンツエリア */}
-      <div className="p-4 overflow-auto" style={{ height: 'calc(100% - 57px)' }}>
+      <div className="p-4 overflow-hidden" style={{ height: 'calc(100% - 57px)' }}>
         {children}
       </div>
 

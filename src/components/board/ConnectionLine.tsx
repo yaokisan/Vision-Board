@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface ConnectionLineProps {
   startElementId: string
@@ -25,55 +25,58 @@ export default function ConnectionLine({
       const endElement = document.getElementById(endElementId)
       
       if (!startElement || !endElement) {
-        console.log(`Elements not found: ${startElementId}, ${endElementId}`)
+        console.log(`Elements not found: ${startElementId}=${!!startElement}, ${endElementId}=${!!endElement}`)
+        setPathData('')
         return
       }
 
+      // SVGコンテナ（.relative）を基準にする
+      const svgContainer = startElement.closest('.relative') as HTMLElement
+      if (!svgContainer) {
+        console.log('SVG container (.relative) not found')
+        setPathData('')
+        return
+      }
+
+      // 要素とSVGコンテナのビューポート座標を取得
       const startRect = startElement.getBoundingClientRect()
       const endRect = endElement.getBoundingClientRect()
+      const svgRect = svgContainer.getBoundingClientRect()
       
-      // Calculate relative positions
-      const startX = startRect.left + startRect.width / 2
-      const startY = startRect.bottom
-      const endX = endRect.left + endRect.width / 2
-      const endY = endRect.top
+      // SVGコンテナを基準とした相対座標（シンプルな計算）
+      const startX = startRect.left + startRect.width / 2 - svgRect.left
+      const startY = startRect.top + startRect.height / 2 - svgRect.top
+      const endX = endRect.left + endRect.width / 2 - svgRect.left
+      const endY = endRect.top + endRect.height / 2 - svgRect.top
 
-      // Create simple straight line for now
+      // 直線パスを作成
       const path = `M ${startX} ${startY} L ${endX} ${endY}`
       setPathData(path)
     }
 
-    // 初期描画
-    const timer = setTimeout(updatePath, 100)
+    // 初期描画（遅延実行で要素が確実に存在するまで待つ）
+    const timer = setTimeout(updatePath, 500)
     
-    // リサイズ時の更新
-    window.addEventListener('resize', updatePath)
-    
-    // MutationObserver でDOM要素の位置変更を監視
+    // DOM要素の監視
     const observer = new MutationObserver(() => {
       requestAnimationFrame(updatePath)
     })
     
-    const startEl = document.getElementById(startElementId)
-    const endEl = document.getElementById(endElementId)
-    
-    if (startEl) {
-      observer.observe(startEl, { 
+    // キャンバスコンテナのみを監視
+    const canvasContainer = document.querySelector('[style*="transform"]')
+    if (canvasContainer) {
+      observer.observe(canvasContainer, { 
         attributes: true, 
         attributeFilter: ['style'],
-        subtree: true 
-      })
-    }
-    if (endEl) {
-      observer.observe(endEl, { 
-        attributes: true, 
-        attributeFilter: ['style'],
-        subtree: true 
+        subtree: true
       })
     }
     
-    // 定期的な更新（フォールバック）
-    const interval = setInterval(updatePath, 16) // 60fps
+    // イベントリスナー
+    window.addEventListener('resize', updatePath)
+    
+    // 定期的な更新
+    const interval = setInterval(updatePath, 100)
     
     return () => {
       clearTimeout(timer)
@@ -87,7 +90,7 @@ export default function ConnectionLine({
 
   return (
     <svg
-      className="fixed inset-0 w-full h-full pointer-events-none"
+      className="absolute inset-0 w-full h-full pointer-events-none"
       style={{ zIndex: 10 }}
     >
       <path

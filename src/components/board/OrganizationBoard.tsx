@@ -126,24 +126,41 @@ export default function OrganizationBoard() {
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, delta } = event
+    const { active, delta, over } = event
     const draggedId = active.id as string
     
     setActiveId(null)
     
     if (!delta) return
     
-    // 位置を永続化
-    const newPosition = {
-      x: (cardPositions[draggedId]?.x || 0) + delta.x,
-      y: (cardPositions[draggedId]?.y || 0) + delta.y
+    // カードの種類を判定
+    const cardType = active.data.current?.type
+    
+    // CXOカードや会社カードは常に位置を更新
+    if (cardType === 'company' || cardType === 'position') {
+      const newPosition = {
+        x: (cardPositions[draggedId]?.x || 0) + delta.x,
+        y: (cardPositions[draggedId]?.y || 0) + delta.y
+      }
+      
+      setCardPositions(prev => ({
+        ...prev,
+        [draggedId]: newPosition
+      }))
     }
-    
-    
-    setCardPositions(prev => ({
-      ...prev,
-      [draggedId]: newPosition
-    }))
+    // レイヤー内のカード（business, task, executor）はドロップゾーン内でのみ位置を更新
+    else if (over && (over.id === 'business-layer-drop' || over.id === 'management-layer-drop')) {
+      const newPosition = {
+        x: (cardPositions[draggedId]?.x || 0) + delta.x,
+        y: (cardPositions[draggedId]?.y || 0) + delta.y
+      }
+      
+      setCardPositions(prev => ({
+        ...prev,
+        [draggedId]: newPosition
+      }))
+    }
+    // レイヤー内カードがドロップゾーン外にドラッグされた場合は位置を保存しない（元に戻る）
   }
 
   return (
