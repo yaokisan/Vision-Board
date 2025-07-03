@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Custom styles for Vision Board */
+.card-base {
+  @apply bg-white rounded-lg shadow-md p-4 transition-all duration-200 hover:shadow-lg;
+}
+
+.card-dragging {
+  @apply scale-105 shadow-xl;
+}
+
+.card-hover {
+  @apply border-2 border-blue-400;
+}
+
+.drop-zone-active {
+  @apply bg-green-100 border-2 border-green-400 border-dashed;
+}
