@@ -8,15 +8,14 @@ interface LayerCardProps {
 
 export default function LayerCard({ layer, className = '', children }: LayerCardProps) {
   const getBackgroundColor = () => {
-    return layer.type === 'business' ? 'bg-business-green' : 'bg-management-teal'
+    return layer.type === 'business' ? 'bg-green-50' : 'bg-blue-50'
   }
 
   return (
-    <div className={`${getBackgroundColor()} rounded-lg p-6 ${className}`}>
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-2xl">📋</span>
-        <h2 className="text-xl font-bold text-gray-800">{layer.name}レイヤー</h2>
-      </div>
+    <div className={`${getBackgroundColor()} border-2 border-gray-300 rounded-xl p-6 min-h-[400px] ${className}`}>
+      <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">
+        【{layer.name}レイヤー】
+      </h2>
       <div className="space-y-4">
         {children}
       </div>

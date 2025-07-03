@@ -7,23 +7,24 @@ interface BusinessCardProps {
 
 export default function BusinessCard({ business, className = '' }: BusinessCardProps) {
   return (
-    <div className={`card-base ${className}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-2xl">🚀</span>
-        <span className="text-sm text-gray-500 font-medium">事業</span>
-      </div>
-      <h3 className="text-lg font-bold text-gray-800 mb-2">{business.name}</h3>
-      <p className="text-sm text-gray-600 mb-3">
-        <span className="font-medium">目標:</span> {business.goal}
-      </p>
-      <div className="bg-business-gold text-white px-3 py-1 rounded-full text-sm font-medium inline-block">
-        👑 責任者: {business.responsible_person}
-      </div>
-      {business.category && (
-        <div className="mt-2 text-xs text-gray-500">
-          カテゴリー: {business.category}
+    <div className={`card-base relative w-64 ${className}`}>
+      <div className="gradient-bar" />
+      
+      <div className="text-center">
+        <h3 className="text-lg font-bold mb-2">{business.name}</h3>
+        <p className="text-sm text-gray-600 mb-3">
+          <span className="font-medium">目標:</span> {business.goal}
+        </p>
+        <div className="border-2 border-red-400 rounded bg-red-50 px-3 py-1 inline-block">
+          <p className="text-sm font-medium text-red-700">
+            事業責任者: {business.responsible_person}
+          </p>
         </div>
-      )}
+      </div>
+      
+      {/* Connection dots */}
+      <div className="connection-dot connection-dot-top" />
+      <div className="connection-dot connection-dot-bottom" />
     </div>
   )
 }

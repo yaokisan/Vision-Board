@@ -1,42 +1,129 @@
 @import "tailwindcss";
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+  --primary-blue: #4169e1;
+  --primary-purple: #6b46c1;
+  --gradient-start: #4c6ef5;
+  --gradient-end: #b042ff;
+  --card-bg: #ffffff;
+  --bg-gray: #f5f5f7;
+  --text-primary: #1a202c;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background-color: var(--bg-gray);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
 }
 
-/* Custom styles for Vision Board */
+/* Card base styles */
 .card-base {
-  @apply bg-white rounded-lg shadow-md p-4 transition-all duration-200 hover:shadow-lg;
+  @apply bg-white rounded-2xl shadow-lg p-6 transition-all duration-300;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.card-base:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .card-dragging {
-  @apply scale-105 shadow-xl;
+  @apply scale-105;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
 }
 
-.card-hover {
-  @apply border-2 border-blue-400;
+/* Connection dot styles */
+.connection-dot {
+  @apply absolute w-3 h-3 bg-blue-400 rounded-full;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.drop-zone-active {
-  @apply bg-green-100 border-2 border-green-400 border-dashed;
+.connection-dot-left {
+  @apply -left-1.5 top-1/2 -translate-y-1/2;
+}
+
+.connection-dot-right {
+  @apply -right-1.5 top-1/2 -translate-y-1/2;
+}
+
+.connection-dot-top {
+  @apply left-1/2 -top-1.5 -translate-x-1/2;
+}
+
+.connection-dot-bottom {
+  @apply left-1/2 -bottom-1.5 -translate-x-1/2;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply px-6 py-3 rounded-full font-medium text-white transition-all duration-200;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  box-shadow: 0 4px 16px rgba(107, 70, 193, 0.2);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(107, 70, 193, 0.3);
+}
+
+.btn-add {
+  @apply absolute bottom-4 right-4 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors;
+}
+
+/* Layer card styles */
+.layer-card {
+  @apply relative bg-white rounded-3xl p-8 min-h-[400px];
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* Header bar gradient */
+.gradient-bar {
+  @apply h-1 w-full rounded-full mb-4;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+}
+
+/* Employee avatar */
+.avatar {
+  @apply w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg;
+}
+
+/* Status indicators */
+.status-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.status-online {
+  @apply bg-green-400;
+}
+
+.status-offline {
+  @apply bg-gray-300;
+}
+
+/* Emoji icon container */
+.emoji-icon {
+  @apply text-3xl mb-2;
+}
+
+/* Info section */
+.info-label {
+  @apply text-xs text-gray-500 mb-1;
+}
+
+.info-value {
+  @apply text-sm text-gray-800 font-medium;
+}
+
+/* SVG Connection animation */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+.animate-dash {
+  animation: dash 1s linear infinite;
 }
