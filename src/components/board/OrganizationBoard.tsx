@@ -14,9 +14,26 @@ import {
 import DraggableCard from './DraggableCard'
 import DropZone from './DropZone'
 import ConnectionLine from './ConnectionLine'
+import ZoomPanCanvas from './ZoomPanCanvas'
 
 export default function OrganizationBoard() {
   const [activeId, setActiveId] = useState<string | null>(null)
+  
+  // カード位置の状態管理
+  const [cardPositions, setCardPositions] = useState<Record<string, { x: number; y: number }>>({})
+  
+  // ドラッグ可能なカードの状態管理
+  const [draggableCards, setDraggableCards] = useState({
+    businesses: ['6'],
+    tasks: ['7'],
+    executors: ['8'],
+    cxos: ['cto-card', 'cfo-card']
+  })
+  
+  // カード位置を取得する関数
+  const getCardPosition = (cardId: string) => {
+    return cardPositions[cardId] || { x: 0, y: 0 }
+  }
 
   // サンプルデータ
   const sampleCompany: Company = {
@@ -94,142 +111,150 @@ export default function OrganizationBoard() {
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    const { active, delta } = event
+    const draggedId = active.id as string
+    
     setActiveId(null)
     
-    const { active, over } = event
+    if (!delta) return
     
-    if (!over) return
+    // 位置を永続化
+    const newPosition = {
+      x: (cardPositions[draggedId]?.x || 0) + delta.x,
+      y: (cardPositions[draggedId]?.y || 0) + delta.y
+    }
     
-    console.log('Dragged', active.id, 'to', over.id)
-    // ここで実際の位置更新処理を実装
+    
+    setCardPositions(prev => ({
+      ...prev,
+      [draggedId]: newPosition
+    }))
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="relative">
-          {/* 接続線 */}
-          <ConnectionLine startElementId="company-1" endElementId="cto-card" />
-          <ConnectionLine startElementId="company-1" endElementId="cfo-card" />
-          <ConnectionLine startElementId="cto-card" endElementId="6" />
-          <ConnectionLine startElementId="6" endElementId="7" />
-          <ConnectionLine startElementId="7" endElementId="8" />
-          
-          {/* 会社カード */}
-          <div className="flex justify-center mb-12">
-            <div id="company-1">
-              <DraggableCard id="company-1" type="company">
-                <CompanyCard company={sampleCompany} ceoName="田中太郎" />
-              </DraggableCard>
+    <ZoomPanCanvas>
+      <div className="p-8 min-w-[2000px] min-h-[1500px]">
+        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="relative">
+            {/* 接続線 */}
+            <ConnectionLine startElementId="company-1" endElementId="cto-card" />
+            <ConnectionLine startElementId="company-1" endElementId="cfo-card" />
+            <ConnectionLine startElementId="cto-card" endElementId="6" />
+            <ConnectionLine startElementId="6" endElementId="7" />
+            <ConnectionLine startElementId="7" endElementId="8" />
+            
+            {/* 会社カード */}
+            <div className="flex justify-center mb-12">
+              <div id="company-1">
+                <DraggableCard id="company-1" type="company" persistedPosition={getCardPosition('company-1')}>
+                  <CompanyCard company={sampleCompany} ceoName="田中太郎" />
+                </DraggableCard>
+              </div>
             </div>
-          </div>
 
-          {/* CXOスペース（オプション） */}
-          <div className="flex justify-center gap-8 mb-12">
-            <div id="cto-card">
-              <DraggableCard id="cto-card" type="position">
-                <CxoCard title="CTO" name="佐藤二郎" />
-              </DraggableCard>
+            {/* CXOスペース（オプション） */}
+            <div className="flex justify-center gap-8 mb-12">
+              <div id="cto-card">
+                <DraggableCard id="cto-card" type="position" persistedPosition={getCardPosition('cto-card')}>
+                  <CxoCard title="CTO" name="佐藤二郎" />
+                </DraggableCard>
+              </div>
+              <div id="cfo-card">
+                <DraggableCard id="cfo-card" type="position" persistedPosition={getCardPosition('cfo-card')}>
+                  <CxoCard title="CFO" name="鈴木三郎" />
+                </DraggableCard>
+              </div>
             </div>
-            <div id="cfo-card">
-              <DraggableCard id="cfo-card" type="position">
-                <CxoCard title="CFO" name="鈴木三郎" />
-              </DraggableCard>
-            </div>
-          </div>
 
-          {/* レイヤーコンテナ */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* 事業レイヤー */}
-            <DropZone 
-              id="business-layer" 
-              acceptTypes={['business', 'task', 'executor']}
-              className=""
-            >
-              <LayerCard layer={sampleLayers[0]}>
-                {/* 事業カード - ピラミッド構造 */}
-                <div className="flex flex-col items-center space-y-8">
-                  {sampleBusinesses.map((business) => (
-                    <div key={business.id} className="flex flex-col items-center space-y-6">
-                      {/* 事業カード */}
-                      <div id={business.id}>
-                        <DraggableCard id={business.id} type="business">
-                          <BusinessCard business={business} />
-                        </DraggableCard>
+            {/* レイヤーコンテナ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* 事業レイヤー */}
+              <DropZone 
+                id="business-layer" 
+                acceptTypes={['business', 'task', 'executor']}
+                className=""
+              >
+                <LayerCard layer={sampleLayers[0]}>
+                  {/* 事業カード - ピラミッド構造 */}
+                  <div className="flex flex-col items-center space-y-8">
+                    {sampleBusinesses.map((business) => (
+                      <div key={business.id} className="flex flex-col items-center space-y-6">
+                        {/* 事業カード */}
+                        <div id={business.id}>
+                          <DraggableCard id={business.id} type="business" persistedPosition={getCardPosition(business.id)}>
+                            <BusinessCard business={business} />
+                          </DraggableCard>
+                        </div>
+                        
+                        {/* 業務カード */}
+                        <div className="flex flex-col items-center space-y-4">
+                          {sampleTasks.filter(task => task.business_id === business.id).map((task) => (
+                            <div key={task.id} className="flex flex-col items-center space-y-3">
+                              <div id={task.id}>
+                                <DraggableCard id={task.id} type="task" persistedPosition={getCardPosition(task.id)}>
+                                  <TaskCard task={task} />
+                                </DraggableCard>
+                              </div>
+                              
+                              {/* 実行者カード */}
+                              <div className="flex flex-col items-center space-y-2">
+                                {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
+                                  <div key={executor.id} id={executor.id}>
+                                    <DraggableCard id={executor.id} type="executor" persistedPosition={getCardPosition(executor.id)}>
+                                      <ExecutorCard executor={executor} />
+                                    </DraggableCard>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      
-                      {/* 業務カード */}
-                      <div className="flex flex-col items-center space-y-4">
-                        {sampleTasks.filter(task => task.business_id === business.id).map((task) => (
-                          <div key={task.id} className="flex flex-col items-center space-y-3">
-                            <div id={task.id}>
-                              <DraggableCard id={task.id} type="task">
-                                <TaskCard task={task} />
+                    ))}
+                  </div>
+                </LayerCard>
+              </DropZone>
+
+              {/* 経営レイヤー */}
+              <DropZone 
+                id="management-layer" 
+                acceptTypes={['task', 'executor']}
+                className=""
+              >
+                <LayerCard layer={sampleLayers[1]}>
+                  {/* 経営レイヤーの業務カード */}
+                  <div className="flex flex-col items-center space-y-6">
+                    {sampleTasks.filter(task => !task.business_id).map((task) => (
+                      <div key={task.id} className="flex flex-col items-center space-y-3">
+                        <div id={`mgmt-${task.id}`}>
+                          <DraggableCard id={`mgmt-${task.id}`} type="task" persistedPosition={getCardPosition(`mgmt-${task.id}`)}>
+                            <TaskCard task={task} />
+                          </DraggableCard>
+                        </div>
+                        
+                        {/* 実行者カード */}
+                        <div className="flex flex-col items-center space-y-2">
+                          {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
+                            <div key={executor.id} id={`mgmt-${executor.id}`}>
+                              <DraggableCard id={`mgmt-${executor.id}`} type="executor" persistedPosition={getCardPosition(`mgmt-${executor.id}`)}>
+                                <ExecutorCard executor={executor} />
                               </DraggableCard>
                             </div>
-                            
-                            {/* 実行者カード */}
-                            <div className="flex flex-col items-center space-y-2">
-                              {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
-                                <div key={executor.id} id={executor.id}>
-                                  <DraggableCard id={executor.id} type="executor">
-                                    <ExecutorCard executor={executor} />
-                                  </DraggableCard>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </LayerCard>
-            </DropZone>
-
-            {/* 経営レイヤー */}
-            <DropZone 
-              id="management-layer" 
-              acceptTypes={['task', 'executor']}
-              className=""
-            >
-              <LayerCard layer={sampleLayers[1]}>
-                {/* 経営レイヤーの業務カード */}
-                <div className="flex flex-col items-center space-y-6">
-                  {sampleTasks.filter(task => !task.business_id).map((task) => (
-                    <div key={task.id} className="flex flex-col items-center space-y-3">
-                      <div id={`mgmt-${task.id}`}>
-                        <DraggableCard id={`mgmt-${task.id}`} type="task">
-                          <TaskCard task={task} />
-                        </DraggableCard>
-                      </div>
-                      
-                      {/* 実行者カード */}
-                      <div className="flex flex-col items-center space-y-2">
-                        {sampleExecutors.filter(exec => exec.task_id === task.id).map((executor) => (
-                          <div key={executor.id} id={`mgmt-${executor.id}`}>
-                            <DraggableCard id={`mgmt-${executor.id}`} type="executor">
-                              <ExecutorCard executor={executor} />
-                            </DraggableCard>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </LayerCard>
-            </DropZone>
-          </div>
-        </div>
-
-        <DragOverlay>
-          {activeId ? (
-            <div className="card-base opacity-80">
-              ドラッグ中...
+                    ))}
+                  </div>
+                </LayerCard>
+              </DropZone>
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-    </div>
+          </div>
+
+          <DragOverlay>
+            {null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+    </ZoomPanCanvas>
   )
 }

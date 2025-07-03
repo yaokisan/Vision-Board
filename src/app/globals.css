@@ -127,3 +127,15 @@ body {
 .animate-dash {
   animation: dash 1s linear infinite;
 }
+
+/* Drop zone styles */
+.drop-zone-active {
+  @apply bg-blue-50 border-2 border-blue-300 border-dashed;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* @dnd-kit override - prevent elements from disappearing */
+[role="button"][aria-roledescription="draggable"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}

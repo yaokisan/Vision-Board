@@ -41,17 +41,45 @@ export default function ConnectionLine({
       // Create simple straight line for now
       const path = `M ${startX} ${startY} L ${endX} ${endY}`
       setPathData(path)
-      
-      console.log(`Connection: ${startElementId} -> ${endElementId}`, { startX, startY, endX, endY })
     }
 
-    // 少し遅延を入れてDOMが確実にレンダリングされてから実行
+    // 初期描画
     const timer = setTimeout(updatePath, 100)
     
+    // リサイズ時の更新
     window.addEventListener('resize', updatePath)
+    
+    // MutationObserver でDOM要素の位置変更を監視
+    const observer = new MutationObserver(() => {
+      requestAnimationFrame(updatePath)
+    })
+    
+    const startEl = document.getElementById(startElementId)
+    const endEl = document.getElementById(endElementId)
+    
+    if (startEl) {
+      observer.observe(startEl, { 
+        attributes: true, 
+        attributeFilter: ['style'],
+        subtree: true 
+      })
+    }
+    if (endEl) {
+      observer.observe(endEl, { 
+        attributes: true, 
+        attributeFilter: ['style'],
+        subtree: true 
+      })
+    }
+    
+    // 定期的な更新（フォールバック）
+    const interval = setInterval(updatePath, 16) // 60fps
+    
     return () => {
       clearTimeout(timer)
+      clearInterval(interval)
       window.removeEventListener('resize', updatePath)
+      observer.disconnect()
     }
   }, [startElementId, endElementId])
 
