@@ -37,6 +37,7 @@ export default function DraggableCard({ id, type, children, className = '', pers
 
   return (
     <div
+      id={`draggable-${id}`}
       ref={setNodeRef}
       style={style}
       className={`${className} ${isDragging ? 'card-dragging' : ''} cursor-grab active:cursor-grabbing`}

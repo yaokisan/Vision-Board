@@ -8,6 +8,7 @@ interface ConnectionLineProps {
   color?: string
   strokeWidth?: number
   animated?: boolean
+  forceUpdate?: number // 強制更新用
 }
 
 export default function ConnectionLine({ 
@@ -15,43 +16,43 @@ export default function ConnectionLine({
   endElementId, 
   color = '#4c6ef5',
   strokeWidth = 3,
-  animated = true
+  animated = true,
+  forceUpdate
 }: ConnectionLineProps) {
   const [pathData, setPathData] = useState('')
 
   useEffect(() => {
     const updatePath = () => {
+      // 基本の座標計算に戻す（デバッグログ削除）
       const startElement = document.getElementById(startElementId)
       const endElement = document.getElementById(endElementId)
       
       if (!startElement || !endElement) {
-        console.log(`Elements not found: ${startElementId}=${!!startElement}, ${endElementId}=${!!endElement}`)
         setPathData('')
         return
       }
 
-      // SVGコンテナ（.relative）を基準にする
-      const svgContainer = startElement.closest('.relative') as HTMLElement
-      if (!svgContainer) {
-        console.log('SVG container (.relative) not found')
+      // Transform要素を基準とした座標計算
+      const transformedCanvas = document.querySelector('[style*="transform"]') as HTMLElement
+      if (!transformedCanvas) {
         setPathData('')
         return
       }
-
-      // 要素とSVGコンテナのビューポート座標を取得
+      
       const startRect = startElement.getBoundingClientRect()
       const endRect = endElement.getBoundingClientRect()
-      const svgRect = svgContainer.getBoundingClientRect()
+      const transformRect = transformedCanvas.getBoundingClientRect()
       
-      // SVGコンテナを基準とした相対座標（シンプルな計算）
-      const startX = startRect.left + startRect.width / 2 - svgRect.left
-      const startY = startRect.top + startRect.height / 2 - svgRect.top
-      const endX = endRect.left + endRect.width / 2 - svgRect.left
-      const endY = endRect.top + endRect.height / 2 - svgRect.top
+      // Transform要素を基準とした相対座標
+      const startX = startRect.left + startRect.width / 2 - transformRect.left
+      const startY = startRect.top + startRect.height / 2 - transformRect.top
+      const endX = endRect.left + endRect.width / 2 - transformRect.left
+      const endY = endRect.top + endRect.height / 2 - transformRect.top
 
       // 直線パスを作成
       const path = `M ${startX} ${startY} L ${endX} ${endY}`
       setPathData(path)
+      
     }
 
     // 初期描画（遅延実行で要素が確実に存在するまで待つ）
@@ -62,21 +63,33 @@ export default function ConnectionLine({
       requestAnimationFrame(updatePath)
     })
     
-    // キャンバスコンテナのみを監視
-    const canvasContainer = document.querySelector('[style*="transform"]')
-    if (canvasContainer) {
-      observer.observe(canvasContainer, { 
-        attributes: true, 
+    // 個別カード要素のみを監視
+    const startElement = document.getElementById(startElementId)
+    const endElement = document.getElementById(endElementId)
+    
+    if (startElement) {
+      observer.observe(startElement, {
+        attributes: true,
         attributeFilter: ['style'],
-        subtree: true
+        subtree: true,
+        childList: true
+      })
+    }
+    
+    if (endElement) {
+      observer.observe(endElement, {
+        attributes: true,
+        attributeFilter: ['style'], 
+        subtree: true,
+        childList: true
       })
     }
     
     // イベントリスナー
     window.addEventListener('resize', updatePath)
     
-    // 定期的な更新
-    const interval = setInterval(updatePath, 100)
+    // より頻繁な更新（カード移動検知のため）
+    const interval = setInterval(updatePath, 50)
     
     return () => {
       clearTimeout(timer)
@@ -84,24 +97,19 @@ export default function ConnectionLine({
       window.removeEventListener('resize', updatePath)
       observer.disconnect()
     }
-  }, [startElementId, endElementId])
+  }, [startElementId, endElementId, forceUpdate])
 
   if (!pathData) return null
 
   return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ zIndex: 10 }}
-    >
-      <path
-        d={pathData}
-        stroke={color}
-        strokeWidth={strokeWidth}
-        fill="none"
-        strokeDasharray={animated ? "8,4" : undefined}
-        className={animated ? "animate-dash" : ""}
-        opacity="0.8"
-      />
-    </svg>
+    <path
+      d={pathData}
+      stroke={color}
+      strokeWidth={strokeWidth}
+      fill="none"
+      strokeDasharray={animated ? "8,4" : undefined}
+      className={animated ? "animate-dash" : ""}
+      opacity="0.8"
+    />
   )
 }

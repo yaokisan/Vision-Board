@@ -23,10 +23,13 @@ export default function OrganizationBoard() {
   // カード位置の状態管理
   const [cardPositions, setCardPositions] = useState<Record<string, { x: number; y: number }>>({})
   
+  // 接続線強制更新用
+  const [connectionUpdateTrigger, setConnectionUpdateTrigger] = useState(0)
+  
   // レイヤーコンテナの状態管理
   const [layerContainers, setLayerContainers] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({
-    'business-layer': { x: 100, y: 200, width: 450, height: 600 },
-    'management-layer': { x: 600, y: 200, width: 450, height: 600 }
+    'business-layer': { x: 500, y: 400, width: 450, height: 500 },
+    'management-layer': { x: 1050, y: 400, width: 450, height: 500 }
   })
   
   // カード位置を取得する関数
@@ -147,6 +150,9 @@ export default function OrganizationBoard() {
         ...prev,
         [draggedId]: newPosition
       }))
+      
+      // 接続線を強制更新
+      setConnectionUpdateTrigger(prev => prev + 1)
     }
     // レイヤー内のカード（business, task, executor）はドロップゾーン内でのみ位置を更新
     else if (over && (over.id === 'business-layer-drop' || over.id === 'management-layer-drop')) {
@@ -159,6 +165,9 @@ export default function OrganizationBoard() {
         ...prev,
         [draggedId]: newPosition
       }))
+      
+      // 接続線を強制更新
+      setConnectionUpdateTrigger(prev => prev + 1)
     }
     // レイヤー内カードがドロップゾーン外にドラッグされた場合は位置を保存しない（元に戻る）
   }
@@ -168,12 +177,18 @@ export default function OrganizationBoard() {
       <div className="p-8 min-w-[2000px] min-h-[1500px]">
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="relative">
-            {/* 接続線 */}
-            <ConnectionLine startElementId="company-1" endElementId="cto-card" />
-            <ConnectionLine startElementId="company-1" endElementId="cfo-card" />
-            <ConnectionLine startElementId="cto-card" endElementId="6" />
-            <ConnectionLine startElementId="6" endElementId="7" />
-            <ConnectionLine startElementId="7" endElementId="8" />
+            {/* 統合接続線コンテナ */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ zIndex: 10, overflow: 'visible' }}
+              preserveAspectRatio="none"
+            >
+              <ConnectionLine startElementId="draggable-company-1" endElementId="draggable-cto-card" forceUpdate={connectionUpdateTrigger} />
+              <ConnectionLine startElementId="draggable-company-1" endElementId="draggable-cfo-card" forceUpdate={connectionUpdateTrigger} />
+              <ConnectionLine startElementId="draggable-cto-card" endElementId="draggable-6" forceUpdate={connectionUpdateTrigger} />
+              <ConnectionLine startElementId="draggable-6" endElementId="draggable-7" forceUpdate={connectionUpdateTrigger} />
+              <ConnectionLine startElementId="draggable-7" endElementId="draggable-8" forceUpdate={connectionUpdateTrigger} />
+            </svg>
             
             {/* 会社カード */}
             <div className="flex justify-center mb-12">
@@ -185,7 +200,7 @@ export default function OrganizationBoard() {
             </div>
 
             {/* CXOスペース（オプション） */}
-            <div className="flex justify-center gap-8 mb-12">
+            <div className="flex justify-center gap-8">
               <div id="cto-card">
                 <DraggableCard id="cto-card" type="position" persistedPosition={getCardPosition('cto-card')}>
                   <CxoCard title="CTO" name="佐藤二郎" />
