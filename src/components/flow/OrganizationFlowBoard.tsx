@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -54,6 +54,8 @@ interface OrganizationFlowBoardProps {
   businesses: any[]
   tasks: any[]
   executors: any[]
+  viewMode?: 'company' | string
+  selectedBusinessId?: string | null
 }
 
 export default function OrganizationFlowBoard({
@@ -62,7 +64,9 @@ export default function OrganizationFlowBoard({
   layers,
   businesses,
   tasks,
-  executors
+  executors,
+  viewMode = 'company',
+  selectedBusinessId
 }: OrganizationFlowBoardProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
@@ -106,7 +110,8 @@ export default function OrganizationFlowBoard({
         layers,
         businesses,
         tasks,
-        executors
+        executors,
+        viewMode
       )
       
       setNodes(flowData.nodes)
@@ -123,11 +128,10 @@ export default function OrganizationFlowBoard({
       console.error('Flow data conversion error:', error)
       setIsLoading(false)
     }
-  }, [companies, positions, layers, businesses, tasks, executors, setNodes, setEdges, getViewport, isMounted])
+  }, [companies, positions, layers, businesses, tasks, executors, viewMode, setNodes, setEdges, getViewport, isMounted])
 
   // エッジ接続ハンドラー
   const onConnect = useCallback((params: Connection) => {
-    console.log('新しい接続:', params)
     
     // すべての接続線を青色で統一
     const edgeColor = '#4c6ef5' // 青色
@@ -395,7 +399,8 @@ export default function OrganizationFlowBoard({
         ...(nodeType === NodeType.CXO && { ceoName: getDefaultNodeLabel(nodeType) }),
         ...(nodeType === NodeType.BUSINESS_LAYER && { 
           type: undefined, // 最初はプレーンコンテナ
-          containerSize: { width: 300, height: 200 }
+          containerSize: { width: 300, height: 200 },
+          size: { width: 300, height: 200 }
         })
       }
     }
@@ -516,13 +521,21 @@ export default function OrganizationFlowBoard({
     setCurrentZoom(Math.round(viewport.zoom * 100))
   }, [getViewport])
 
-  // ノードタイプマッピングを作成（関数定義後に配置）
-  const nodeTypes = createNodeTypes(handleCardPlusClick, handleEditNode, handleDeleteNode)
+  // ノードタイプマッピング（一時的に静的に定義）
+  const nodeTypes = useMemo(() => ({
+    [NodeType.COMPANY]: CompanyFlowNode,
+    [NodeType.CXO]: CxoFlowNode,
+    [NodeType.CXO_LAYER]: CxoLayerNode,
+    [NodeType.BUSINESS_LAYER]: BusinessLayerNode,
+    [NodeType.BUSINESS]: BusinessFlowNode,
+    [NodeType.TASK]: TaskFlowNode,
+    [NodeType.EXECUTOR]: ExecutorFlowNode
+  }), [])
   
-  // エッジタイプマッピング
-  const edgeTypes = {
+  // エッジタイプマッピング（メモ化）
+  const edgeTypes = useMemo(() => ({
     default: CustomEdge
-  }
+  }), [])
 
   if (isLoading) {
     return (

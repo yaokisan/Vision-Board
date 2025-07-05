@@ -91,15 +91,15 @@ export default function NodeToolbar(_: NodeToolbarProps) {
             className={`
               group relative cursor-move transition-all duration-200
               ${item.color} text-white
-              rounded-lg p-3 min-w-[120px] 
+              rounded-lg p-1.5 min-w-[50px] 
               transform hover:scale-105 active:scale-95
               shadow-sm hover:shadow-md
               ${draggedItem?.type === item.type ? 'opacity-50' : ''}
             `}
             title={item.description}
           >
-            <div className="flex flex-col items-center space-y-1">
-              <span className="text-2xl">{item.icon}</span>
+            <div className="flex flex-col items-center space-y-0.5">
+              <span className="text-sm">{item.icon}</span>
               <span className="text-xs font-medium">{item.label}</span>
             </div>
             

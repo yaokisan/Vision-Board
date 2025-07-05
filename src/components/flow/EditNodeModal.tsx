@@ -227,21 +227,48 @@ export default function EditNodeModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">コンテナ色</label>
-              <select
-                value={formData.color || (nodeData.type === NodeType.CXO_LAYER ? 'purple' : 'gray')}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              >
-                <option value="gray">グレー</option>
-                <option value="blue">ブルー</option>
-                <option value="green">グリーン</option>
-                <option value="purple">パープル</option>
-                <option value="red">レッド</option>
-                <option value="yellow">イエロー</option>
-                <option value="indigo">インディゴ</option>
-                <option value="pink">ピンク</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-2">コンテナ色</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { value: 'gray', name: 'グレー', bg: 'bg-gray-400', border: 'border-gray-400' },
+                  { value: 'blue', name: 'ブルー', bg: 'bg-blue-400', border: 'border-blue-400' },
+                  { value: 'green', name: 'グリーン', bg: 'bg-green-400', border: 'border-green-400' },
+                  { value: 'purple', name: 'パープル', bg: 'bg-purple-400', border: 'border-purple-400' },
+                  { value: 'red', name: 'レッド', bg: 'bg-red-400', border: 'border-red-400' },
+                  { value: 'yellow', name: 'イエロー', bg: 'bg-yellow-400', border: 'border-yellow-400' },
+                  { value: 'indigo', name: 'インディゴ', bg: 'bg-indigo-400', border: 'border-indigo-400' },
+                  { value: 'pink', name: 'ピンク', bg: 'bg-pink-400', border: 'border-pink-400' }
+                ].map((colorOption) => {
+                  const isSelected = (formData.color || (nodeData.type === NodeType.CXO_LAYER ? 'purple' : 'gray')) === colorOption.value
+                  return (
+                    <button
+                      key={colorOption.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, color: colorOption.value })}
+                      className={`
+                        relative p-3 rounded-lg border-2 transition-all duration-200
+                        ${colorOption.bg}
+                        ${isSelected 
+                          ? `${colorOption.border} shadow-lg scale-105` 
+                          : 'border-gray-200 hover:border-gray-300 hover:scale-102'
+                        }
+                      `}
+                      title={colorOption.name}
+                    >
+                      {isSelected && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                コンテナの背景色を選択してください
+              </p>
             </div>
           </>
         )

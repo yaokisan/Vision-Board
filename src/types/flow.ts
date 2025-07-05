@@ -34,6 +34,8 @@ export interface FlowNode extends Node {
     // レイヤー特有の属性
     type?: 'business' | 'management';
     containerSize?: { width: number; height: number };
+    // ノードが属するタブキー（company または businessId）
+    displayTab?: string;
     // CXO特有の属性
     ceoName?: string;
   };

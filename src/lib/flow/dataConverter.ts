@@ -43,7 +43,8 @@ export class FlowDataConverter {
         data: {
           entity: { id: 'cxo-layer', name: 'CXOレイヤー' },
           label: 'CXOレイヤー',
-          containerSize: { width: 800, height: 200 }
+          containerSize: { width: 800, height: 200 },
+          displayTab: 'company' // デフォルトは company タブで表示
         },
         draggable: true,
         selectable: true
@@ -80,7 +81,8 @@ export class FlowDataConverter {
           entity: layer,
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
-          containerSize: { width: 500, height: 600 }
+          containerSize: { width: 500, height: 600 },
+          displayTab: 'company' // デフォルトは company タブで表示
         },
         draggable: true,
         selectable: true
@@ -256,10 +258,27 @@ export class FlowDataConverter {
     layers: Layer[],
     businesses: Business[],
     tasks: Task[],
-    executors: Executor[]
+    executors: Executor[],
+    viewMode: 'company' | 'business' = 'company'
   ): OrganizationFlowData {
-    const nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors)
-    const edges = this.convertToEdges(companies, positions, businesses, tasks, executors)
+    let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors)
+    let edges = this.convertToEdges(companies, positions, businesses, tasks, executors)
+    
+    // 事業ビューの場合、会社とCXO関連ノードを除外
+    if (viewMode === 'business') {
+      nodes = nodes.filter(node => 
+        node.type !== 'company' && 
+        node.type !== 'cxo' && 
+        node.type !== 'cxo_layer'
+      )
+      
+      // 会社・CXO関連のエッジも除外
+      edges = edges.filter(edge => {
+        const sourceNode = nodes.find(n => n.id === edge.source)
+        const targetNode = nodes.find(n => n.id === edge.target)
+        return sourceNode && targetNode
+      })
+    }
     
     return { nodes, edges }
   }
