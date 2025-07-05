@@ -54,7 +54,7 @@ interface OrganizationFlowBoardProps {
   businesses: any[]
   tasks: any[]
   executors: any[]
-  viewMode?: 'company' | string
+  viewMode?: 'company' | 'business'
   selectedBusinessId?: string | null
 }
 
@@ -65,7 +65,7 @@ export default function OrganizationFlowBoard({
   businesses,
   tasks,
   executors,
-  viewMode = 'company',
+  viewMode = 'company' as 'company' | 'business',
   selectedBusinessId
 }: OrganizationFlowBoardProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
@@ -149,7 +149,7 @@ export default function OrganizationFlowBoard({
       reconnectable: true,
       deletable: true
     }, eds))
-  }, [setEdges, nodes])
+  }, [setEdges])
 
   // ノード移動保存ハンドラー
   const onNodeDragStop = useCallback(
@@ -521,16 +521,11 @@ export default function OrganizationFlowBoard({
     setCurrentZoom(Math.round(viewport.zoom * 100))
   }, [getViewport])
 
-  // ノードタイプマッピング（一時的に静的に定義）
-  const nodeTypes = useMemo(() => ({
-    [NodeType.COMPANY]: CompanyFlowNode,
-    [NodeType.CXO]: CxoFlowNode,
-    [NodeType.CXO_LAYER]: CxoLayerNode,
-    [NodeType.BUSINESS_LAYER]: BusinessLayerNode,
-    [NodeType.BUSINESS]: BusinessFlowNode,
-    [NodeType.TASK]: TaskFlowNode,
-    [NodeType.EXECUTOR]: ExecutorFlowNode
-  }), [])
+  // ノードタイプマッピングを作成（メモ化）
+  const nodeTypes = useMemo(
+    () => createNodeTypes(handleCardPlusClick, handleEditNode, handleDeleteNode),
+    [handleCardPlusClick, handleEditNode, handleDeleteNode]
+  )
   
   // エッジタイプマッピング（メモ化）
   const edgeTypes = useMemo(() => ({

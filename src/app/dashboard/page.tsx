@@ -173,7 +173,7 @@ const sampleData = {
 }
 
 export default function FlowDashboard() {
-  const [viewMode, setViewMode] = useState<'company' | string>('company')
+  const [viewMode, setViewMode] = useState<'company' | 'business'>('company')
   const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null)
   
 
