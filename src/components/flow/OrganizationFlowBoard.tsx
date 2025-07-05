@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
-import { NodeType } from '@/types/flow'
+import { NodeType, FlowNode } from '@/types/flow'
 import { 
   CompanyFlowNode, 
   CxoFlowNode, 
@@ -60,8 +60,8 @@ export default function OrganizationFlowBoard({
   tasks,
   executors
 }: OrganizationFlowBoardProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedParentNode, setSelectedParentNode] = useState<{ id: string; type: NodeType } | null>(null)
@@ -134,7 +134,7 @@ export default function OrganizationFlowBoard({
         }
       }
 
-      const newNode = {
+      const newNode: FlowNode = {
         id: nodeData.id,
         type: finalNodeType,
         position: { 
@@ -151,7 +151,7 @@ export default function OrganizationFlowBoard({
           })
         },
         parentNode: selectedParentNode?.id,
-        extent: selectedParentNode ? 'parent' : undefined,
+        extent: selectedParentNode ? 'parent' as const : undefined,
         draggable: true,
         selectable: true
       }
@@ -391,7 +391,6 @@ export default function OrganizationFlowBoard({
           color="#e5e7eb" 
           gap={20} 
           size={1}
-          variant="dots"
         />
         
         {/* コントロールパネル */}

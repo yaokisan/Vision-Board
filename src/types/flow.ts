@@ -1,4 +1,5 @@
 // React Flow用の型定義
+import { Node, Edge } from '@xyflow/react'
 import { Company, Position, Layer, Business, Task, Executor } from './index'
 
 // React Flow用ノードタイプ
@@ -21,31 +22,22 @@ export enum EdgeType {
 }
 
 // React Flow用ノード構造
-export interface FlowNode {
-  id: string;
+export interface FlowNode extends Node {
   type: NodeType;
-  position: { x: number; y: number };
   data: {
     // 既存のデータ構造を活用
-    entity: Company | Position | Layer | Business | Task | Executor;
+    entity: Company | Position | Layer | Business | Task | Executor | any;
     // 追加のメタデータ
     label: string;
     color?: string;
     size?: { width: number; height: number };
     // レイヤー特有の属性
-    layer?: {
-      type: 'business' | 'management';
-      containerSize: { width: number; height: number };
-    };
+    type?: 'business' | 'management';
+    containerSize?: { width: number; height: number };
     // CXO特有の属性
     ceoName?: string;
   };
-  // React Flow固有の属性
-  draggable?: boolean;
-  selectable?: boolean;
-  deletable?: boolean;
-  parentNode?: string; // レイヤーカード内のノード用
-  extent?: 'parent' | [[number, number], [number, number]]; // 移動制限
+  parentNode?: string;
 }
 
 // React Flow用エッジ構造
@@ -75,5 +67,5 @@ export interface FlowEdge {
 // React Flow統合用の組織図データ
 export interface OrganizationFlowData {
   nodes: FlowNode[];
-  edges: FlowEdge[];
+  edges: Edge[];
 }

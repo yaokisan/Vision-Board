@@ -1,6 +1,7 @@
 // 既存データからReact Flow形式への変換ユーティリティ
 import { Company, Position, Layer, Business, Task, Executor } from '@/types'
-import { FlowNode, FlowEdge, NodeType, EdgeType, OrganizationFlowData } from '@/types/flow'
+import { Edge } from '@xyflow/react'
+import { FlowNode, NodeType, EdgeType, OrganizationFlowData } from '@/types/flow'
 
 export class FlowDataConverter {
   // ノード変換
@@ -40,7 +41,7 @@ export class FlowDataConverter {
         type: NodeType.CXO_LAYER,
         position: { x: 200, y: 250 },
         data: {
-          entity: { id: 'cxo-layer', type: 'cxo' },
+          entity: { id: 'cxo-layer', name: 'CXOレイヤー' },
           label: 'CXOレイヤー',
           containerSize: { width: 800, height: 200 }
         },
@@ -62,7 +63,7 @@ export class FlowDataConverter {
             size: { width: 224, height: 120 }
           },
           parentNode: 'cxo-layer',
-          extent: 'parent',
+          extent: 'parent' as const,
           draggable: true,
           selectable: true
         })
@@ -78,7 +79,7 @@ export class FlowDataConverter {
         data: {
           entity: layer,
           label: `${layer.name}レイヤー`,
-          type: layer.type,
+          type: layer.type as 'business' | 'management',
           containerSize: { width: 500, height: 600 }
         },
         draggable: true,
@@ -101,7 +102,7 @@ export class FlowDataConverter {
           size: { width: 256, height: 160 }
         },
         parentNode: `layer-${business.layer_id}`,
-        extent: 'parent',
+        extent: 'parent' as const,
         draggable: true,
         selectable: true
       })
@@ -124,7 +125,7 @@ export class FlowDataConverter {
           size: { width: 224, height: 100 }
         },
         parentNode: !task.business_id ? `layer-${task.layer_id}` : undefined,
-        extent: !task.business_id ? 'parent' : undefined,
+        extent: !task.business_id ? 'parent' as const : undefined,
         draggable: true,
         selectable: true
       })
@@ -148,7 +149,7 @@ export class FlowDataConverter {
           size: { width: 192, height: 80 }
         },
         parentNode: layerId ? `layer-${layerId}` : undefined,
-        extent: layerId ? 'parent' : undefined,
+        extent: layerId ? 'parent' as const : undefined,
         draggable: true,
         selectable: true
       })
@@ -164,8 +165,8 @@ export class FlowDataConverter {
     businesses: Business[],
     tasks: Task[],
     executors: Executor[]
-  ): FlowEdge[] {
-    const edges: FlowEdge[] = []
+  ): Edge[] {
+    const edges: Edge[] = []
     
     // 会社 → 役職（CXO）
     positions.forEach(position => {
@@ -174,8 +175,7 @@ export class FlowDataConverter {
           id: `company-position-${position.id}`,
           source: `company-${position.company_id}`,
           target: `position-${position.id}`,
-          type: EdgeType.HIERARCHY,
-          data: { color: '#4c6ef5', animated: true },
+          type: 'default',
           style: { 
             stroke: '#4c6ef5', 
             strokeWidth: 2,
@@ -187,15 +187,14 @@ export class FlowDataConverter {
     })
     
     // 役職 → 事業（CTOから事業への管理線）
-    const ctoPosition = positions.find(p => p.name === 'CTO')
+    const ctoPosition = positions.find(p => p.name.includes('CTO'))
     if (ctoPosition) {
       businesses.forEach(business => {
         edges.push({
           id: `position-business-${business.id}`,
           source: `position-${ctoPosition.id}`,
           target: `business-${business.id}`,
-          type: EdgeType.MANAGEMENT,
-          data: { color: '#10b981', animated: true },
+          type: 'default',
           style: { 
             stroke: '#10b981', 
             strokeWidth: 2,
@@ -213,8 +212,7 @@ export class FlowDataConverter {
           id: `business-task-${task.id}`,
           source: `business-${task.business_id}`,
           target: `task-${task.id}`,
-          type: EdgeType.HIERARCHY,
-          data: { color: '#f59e0b', animated: true },
+          type: 'default',
           style: { 
             stroke: '#f59e0b', 
             strokeWidth: 2,
@@ -231,8 +229,7 @@ export class FlowDataConverter {
         id: `task-executor-${executor.id}`,
         source: `task-${executor.task_id}`,
         target: `executor-${executor.id}`,
-        type: EdgeType.EXECUTION,
-        data: { color: '#ef4444', animated: true },
+        type: 'default',
         style: { 
           stroke: '#ef4444', 
           strokeWidth: 1,

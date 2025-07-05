@@ -61,7 +61,6 @@ export default function BusinessLayerNode({ data, selected, id }: BusinessLayerN
           backgroundColor: resizerColor,
           border: '2px solid white'
         }}
-        position="top-left,top-right,bottom-left,bottom-right,left,right,top,bottom"
       />
       
       <div 

@@ -53,7 +53,6 @@ export default function CxoLayerNode({ data, selected, id }: CxoLayerNodeProps) 
           backgroundColor: '#8b5cf6',
           border: '2px solid white'
         }}
-        position="top-left,top-right,bottom-left,bottom-right,left,right,top,bottom"
       />
       
       <div 
