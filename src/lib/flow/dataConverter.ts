@@ -198,7 +198,7 @@ export class FlowDataConverter {
           target: `business-${business.id}`,
           type: 'default',
           style: { 
-            stroke: '#10b981', 
+            stroke: '#4c6ef5', 
             strokeWidth: 2,
             strokeDasharray: '2,4'
           },
@@ -218,7 +218,7 @@ export class FlowDataConverter {
           target: `task-${task.id}`,
           type: 'default',
           style: { 
-            stroke: '#f59e0b', 
+            stroke: '#4c6ef5', 
             strokeWidth: 2,
             strokeDasharray: '2,4'
           },
@@ -237,9 +237,9 @@ export class FlowDataConverter {
         target: `executor-${executor.id}`,
         type: 'default',
         style: { 
-          stroke: '#ef4444', 
-          strokeWidth: 1,
-          strokeDasharray: '4,2'
+          stroke: '#4c6ef5', 
+          strokeWidth: 2,
+          strokeDasharray: '2,4'
         },
         animated: true,
         reconnectable: true

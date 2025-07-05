@@ -88,7 +88,14 @@ export default function OrganizationFlowBoard({
   // 接続線再接続の状態管理
   const [isReconnecting, setIsReconnecting] = useState(false)
   const [reconnectingEdge, setReconnectingEdge] = useState<Edge | null>(null)
-  const { getNodes } = useReactFlow()
+  const { getNodes, getViewport } = useReactFlow()
+  const [currentZoom, setCurrentZoom] = useState(70)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // クライアントサイドマウント確認
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // データ変換とReact Flow初期化
   useEffect(() => {
@@ -105,40 +112,26 @@ export default function OrganizationFlowBoard({
       setNodes(flowData.nodes)
       setEdges(flowData.edges)
       setIsLoading(false)
+      // 初期ズーム率を設定
+      if (isMounted) {
+        setTimeout(() => {
+          const viewport = getViewport()
+          setCurrentZoom(Math.round(viewport.zoom * 100))
+        }, 100)
+      }
     } catch (error) {
       console.error('Flow data conversion error:', error)
       setIsLoading(false)
     }
-  }, [companies, positions, layers, businesses, tasks, executors, setNodes, setEdges])
+  }, [companies, positions, layers, businesses, tasks, executors, setNodes, setEdges, getViewport, isMounted])
 
   // エッジ接続ハンドラー
   const onConnect = useCallback((params: Connection) => {
     console.log('新しい接続:', params)
     
-    // 接続元・接続先ノードを取得
-    const sourceNode = nodes.find(node => node.id === params.source)
-    const targetNode = nodes.find(node => node.id === params.target)
-    
-    // 階層に基づいて色を決定
-    let edgeColor = '#4c6ef5' // デフォルト色
-    let strokeWidth = 2
-    
-    if (sourceNode && targetNode) {
-      const sourceType = sourceNode.type
-      const targetType = targetNode.type
-      
-      // 階層ごとの色設定
-      if (sourceType === NodeType.COMPANY && targetType === NodeType.CXO) {
-        edgeColor = '#4c6ef5' // 青色（会社→CXO）
-      } else if (sourceType === NodeType.CXO && (targetType === NodeType.BUSINESS || targetType === NodeType.BUSINESS_LAYER)) {
-        edgeColor = '#10b981' // 緑色（CXO→事業）
-      } else if (sourceType === NodeType.BUSINESS && targetType === NodeType.TASK) {
-        edgeColor = '#f59e0b' // オレンジ色（事業→業務）
-      } else if (sourceType === NodeType.TASK && targetType === NodeType.EXECUTOR) {
-        edgeColor = '#ef4444' // 赤色（業務→実行者）
-        strokeWidth = 1
-      }
-    }
+    // すべての接続線を青色で統一
+    const edgeColor = '#4c6ef5' // 青色
+    const strokeWidth = 2
     
     setEdges((eds) => addEdge({
       ...params,
@@ -517,6 +510,12 @@ export default function OrganizationFlowBoard({
     setEdges((eds) => eds.filter(edge => !edgesToDelete.some(delEdge => delEdge.id === edge.id)))
   }, [setEdges])
 
+  // ビューポート変更ハンドラー（ズーム率表示用）
+  const onMove = useCallback(() => {
+    const viewport = getViewport()
+    setCurrentZoom(Math.round(viewport.zoom * 100))
+  }, [getViewport])
+
   // ノードタイプマッピングを作成（関数定義後に配置）
   const nodeTypes = createNodeTypes(handleCardPlusClick, handleEditNode, handleDeleteNode)
   
@@ -580,10 +579,11 @@ export default function OrganizationFlowBoard({
         onEdgesDelete={onEdgesDelete}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onMove={onMove}
         deleteKeyCode="Delete"
         fitView
-        fitViewOptions={{ padding: 0.1 }}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+        fitViewOptions={{ padding: 0.1, maxZoom: 0.7 }}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
         minZoom={0.1}
         maxZoom={2}
         snapToGrid
@@ -626,7 +626,9 @@ export default function OrganizationFlowBoard({
           pannable
           style={{
             backgroundColor: 'white',
-            border: '1px solid #e5e7eb'
+            border: '1px solid #e5e7eb',
+            marginBottom: '60px',
+            marginRight: '20px'
           }}
         />
         
@@ -641,6 +643,14 @@ export default function OrganizationFlowBoard({
             <p>接続数: {edges.length}</p>
           </div>
         </Panel>
+
+        {/* ズーム率表示 */}
+        <div 
+          className="fixed bottom-4 left-20 bg-black bg-opacity-75 text-white px-3 py-1 rounded-md text-sm font-medium z-50"
+          style={{ pointerEvents: 'none' }}
+        >
+          ズーム: {currentZoom}%
+        </div>
       </ReactFlow>
 
       {/* ノード追加モーダル */}

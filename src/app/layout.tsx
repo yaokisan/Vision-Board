@@ -4,8 +4,8 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Vision Board - 組織図管理アプリ',
-  description: '動的組織図管理アプリケーション',
+  title: 'Vision Board',
+  description: '動的組織図管理アプリケーション - Empire Art',
 }
 
 export default function RootLayout({
