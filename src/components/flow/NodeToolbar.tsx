@@ -52,13 +52,11 @@ const toolbarItems: ToolbarItem[] = [
   }
 ]
 
-export default function NodeToolbar({ onNodeDrop }: NodeToolbarProps) {
+export default function NodeToolbar(_: NodeToolbarProps) {
   const [draggedItem, setDraggedItem] = useState<ToolbarItem | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
 
   const handleDragStart = useCallback((event: React.DragEvent, item: ToolbarItem) => {
     setDraggedItem(item)
-    setIsDragging(true)
     
     // ドラッグデータを設定
     event.dataTransfer.setData('application/reactflow', JSON.stringify({
@@ -75,7 +73,6 @@ export default function NodeToolbar({ onNodeDrop }: NodeToolbarProps) {
 
   const handleDragEnd = useCallback(() => {
     setDraggedItem(null)
-    setIsDragging(false)
   }, [])
 
   return (

@@ -1,4 +1,5 @@
 import OrganizationFlowBoard from '@/components/flow/OrganizationFlowBoard'
+import { ReactFlowProvider } from '@xyflow/react'
 
 // サンプルデータ（実際のプロジェクトではSupabaseから取得）
 const sampleData = {
@@ -169,21 +170,23 @@ const sampleData = {
 
 export default function FlowDashboard() {
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900">Empire Art - 組織図 (React Flow版)</h1>
-          <p className="text-gray-600 mt-2">React Flowを使用した新しい組織図表示</p>
+    <ReactFlowProvider>
+      <main className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200 px-8 py-6">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-900">Empire Art - 組織図 (React Flow版)</h1>
+            <p className="text-gray-600 mt-2">React Flowを使用した新しい組織図表示</p>
+          </div>
         </div>
-      </div>
-      <OrganizationFlowBoard 
-        companies={sampleData.companies}
-        positions={sampleData.positions}
-        layers={sampleData.layers}
-        businesses={sampleData.businesses}
-        tasks={sampleData.tasks}
-        executors={sampleData.executors}
-      />
-    </main>
+        <OrganizationFlowBoard 
+          companies={sampleData.companies}
+          positions={sampleData.positions}
+          layers={sampleData.layers}
+          businesses={sampleData.businesses}
+          tasks={sampleData.tasks}
+          executors={sampleData.executors}
+        />
+      </main>
+    </ReactFlowProvider>
   )
 }

@@ -18,13 +18,10 @@ interface BusinessLayerNodeProps {
 }
 
 export default function BusinessLayerNode({ data, selected, id, onEditNode, onDeleteNode }: BusinessLayerNodeProps) {
-  const [isResizing, setIsResizing] = useState(false)
   const [currentSize, setCurrentSize] = useState(data.containerSize)
   const [isHovered, setIsHovered] = useState(false)
   const { setNodes } = useReactFlow()
   const isBusiness = data.type === 'business'
-  const isManagement = data.type === 'management'
-  const isPlain = !data.type // プレーンコンテナ
   
   // 色設定を取得
   const getColorConfig = () => {
@@ -120,8 +117,8 @@ export default function BusinessLayerNode({ data, selected, id, onEditNode, onDe
         isVisible={selected}
         minWidth={400}
         minHeight={300}
-        onResizeStart={() => setIsResizing(true)}
-        onResizeEnd={() => setIsResizing(false)}
+        onResizeStart={() => {}}
+        onResizeEnd={() => {}}
         onResize={handleResize}
         handleStyle={{
           width: '12px',

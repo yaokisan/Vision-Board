@@ -10,7 +10,11 @@
       "Bash(npm uninstall:*)",
       "Bash(git add:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run lint)",
+      "Bash(rg:*)",
+      "Bash(npx next lint:*)"
     ],
     "deny": []
   }

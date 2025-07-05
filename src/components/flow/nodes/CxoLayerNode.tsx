@@ -17,7 +17,6 @@ interface CxoLayerNodeProps {
 }
 
 export default function CxoLayerNode({ data, selected, id, onEditNode, onDeleteNode }: CxoLayerNodeProps) {
-  const [isResizing, setIsResizing] = useState(false)
   const [currentSize, setCurrentSize] = useState(data.containerSize)
   const [isHovered, setIsHovered] = useState(false)
   const { setNodes } = useReactFlow()
@@ -119,8 +118,8 @@ export default function CxoLayerNode({ data, selected, id, onEditNode, onDeleteN
         isVisible={selected}
         minWidth={400}
         minHeight={150}
-        onResizeStart={() => setIsResizing(true)}
-        onResizeEnd={() => setIsResizing(false)}
+        onResizeStart={() => {}}
+        onResizeEnd={() => {}}
         onResize={handleResize}
         handleStyle={{
           width: '12px',
