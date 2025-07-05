@@ -12,7 +12,9 @@ import {
   Connection,
   Edge,
   Panel,
-  Node
+  Node,
+  useReactFlow,
+  reconnectEdge
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -31,13 +33,15 @@ import AddNodeModal from './AddNodeModal'
 import InlineCardModal from './InlineCardModal'
 import EditNodeModal from './EditNodeModal'
 import DeleteConfirmPopup from './DeleteConfirmPopup'
+import CustomEdge from './CustomEdge'
+import NodeToolbar from './NodeToolbar'
 
 // カスタムノードタイプマッピングを関数として定義（プロパティを渡すため）
 const createNodeTypes = (onAddNode: (parentId: string) => void, onEditNode: (nodeId: string) => void, onDeleteNode: (nodeId: string) => void) => ({
   [NodeType.COMPANY]: (props: any) => <CompanyFlowNode {...props} onAddNode={onAddNode} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
   [NodeType.CXO]: (props: any) => <CxoFlowNode {...props} onAddNode={onAddNode} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
-  [NodeType.CXO_LAYER]: CxoLayerNode,
-  [NodeType.BUSINESS_LAYER]: BusinessLayerNode,
+  [NodeType.CXO_LAYER]: (props: any) => <CxoLayerNode {...props} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
+  [NodeType.BUSINESS_LAYER]: (props: any) => <BusinessLayerNode {...props} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
   [NodeType.BUSINESS]: (props: any) => <BusinessFlowNode {...props} onAddNode={onAddNode} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
   [NodeType.TASK]: (props: any) => <TaskFlowNode {...props} onAddNode={onAddNode} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
   [NodeType.EXECUTOR]: (props: any) => <ExecutorFlowNode {...props} onAddNode={onAddNode} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />
@@ -67,7 +71,7 @@ export default function OrganizationFlowBoard({
   const [selectedParentNode, setSelectedParentNode] = useState<{ id: string; type: NodeType } | null>(null)
   const [isInlineModalOpen, setIsInlineModalOpen] = useState(false)
   const [inlineModalPosition, setInlineModalPosition] = useState({ x: 0, y: 0 })
-  const [editingNode, setEditingNode] = useState<{ id: string; data: any } | null>(null)
+  const [editingNode, setEditingNode] = useState<{ id: string; type: string; data: any } | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ 
     isOpen: boolean; 
@@ -80,6 +84,11 @@ export default function OrganizationFlowBoard({
     position: { x: 0, y: 0 },
     nodeLabel: ''
   })
+
+  // 接続線再接続の状態管理
+  const [isReconnecting, setIsReconnecting] = useState(false)
+  const [reconnectingEdge, setReconnectingEdge] = useState<Edge | null>(null)
+  const { getNodes } = useReactFlow()
 
   // データ変換とReact Flow初期化
   useEffect(() => {
@@ -103,10 +112,47 @@ export default function OrganizationFlowBoard({
   }, [companies, positions, layers, businesses, tasks, executors, setNodes, setEdges])
 
   // エッジ接続ハンドラー
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  )
+  const onConnect = useCallback((params: Connection) => {
+    console.log('新しい接続:', params)
+    
+    // 接続元・接続先ノードを取得
+    const sourceNode = nodes.find(node => node.id === params.source)
+    const targetNode = nodes.find(node => node.id === params.target)
+    
+    // 階層に基づいて色を決定
+    let edgeColor = '#4c6ef5' // デフォルト色
+    let strokeWidth = 2
+    
+    if (sourceNode && targetNode) {
+      const sourceType = sourceNode.type
+      const targetType = targetNode.type
+      
+      // 階層ごとの色設定
+      if (sourceType === NodeType.COMPANY && targetType === NodeType.CXO) {
+        edgeColor = '#4c6ef5' // 青色（会社→CXO）
+      } else if (sourceType === NodeType.CXO && (targetType === NodeType.BUSINESS || targetType === NodeType.BUSINESS_LAYER)) {
+        edgeColor = '#10b981' // 緑色（CXO→事業）
+      } else if (sourceType === NodeType.BUSINESS && targetType === NodeType.TASK) {
+        edgeColor = '#f59e0b' // オレンジ色（事業→業務）
+      } else if (sourceType === NodeType.TASK && targetType === NodeType.EXECUTOR) {
+        edgeColor = '#ef4444' // 赤色（業務→実行者）
+        strokeWidth = 1
+      }
+    }
+    
+    setEdges((eds) => addEdge({
+      ...params,
+      type: 'default',
+      style: { 
+        stroke: edgeColor, 
+        strokeWidth: strokeWidth,
+        strokeDasharray: '2,4'
+      },
+      animated: true,
+      reconnectable: true,
+      deletable: true
+    }, eds))
+  }, [setEdges, nodes])
 
   // ノード移動保存ハンドラー
   const onNodeDragStop = useCallback(
@@ -258,7 +304,7 @@ export default function OrganizationFlowBoard({
     (nodeId: string) => {
       const node = nodes.find(n => n.id === nodeId)
       if (node) {
-        setEditingNode({ id: nodeId, data: node.data })
+        setEditingNode({ id: nodeId, type: node.type, data: node.data })
         setIsEditModalOpen(true)
       }
     },
@@ -269,18 +315,34 @@ export default function OrganizationFlowBoard({
   const handleSaveEditNode = useCallback(
     (nodeId: string, updatedData: any) => {
       setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId
-            ? {
+        nds.map((node) => {
+          if (node.id === nodeId) {
+            // コンテナの場合は特別な処理
+            if (node.type === NodeType.BUSINESS_LAYER || node.type === NodeType.CXO_LAYER) {
+              return {
                 ...node,
                 data: {
                   ...node.data,
                   entity: { ...node.data.entity, ...updatedData },
-                  label: updatedData.name || updatedData.person_name || updatedData.title || node.data.label
+                  label: updatedData.name || node.data.label,
+                  type: updatedData.type,
+                  description: updatedData.description,
+                  color: updatedData.color
                 }
               }
-            : node
-        )
+            }
+            // 通常のノードの処理
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                entity: { ...node.data.entity, ...updatedData },
+                label: updatedData.name || updatedData.person_name || updatedData.title || node.data.label
+              }
+            }
+          }
+          return node
+        })
       )
       setIsEditModalOpen(false)
       setEditingNode(null)
@@ -328,8 +390,140 @@ export default function OrganizationFlowBoard({
     setDeleteConfirm({ isOpen: false, nodeId: '', position: { x: 0, y: 0 }, nodeLabel: '' })
   }, [])
 
+  // ドラッグ&ドロップでノード追加
+  const handleNodeDrop = useCallback((nodeType: NodeType, position: { x: number, y: number }) => {
+    const newNode: FlowNode = {
+      id: `${nodeType.toLowerCase()}-${Date.now()}`,
+      type: nodeType,
+      position,
+      data: {
+        entity: {},
+        label: getDefaultNodeLabel(nodeType),
+        ...(nodeType === NodeType.CXO && { ceoName: getDefaultNodeLabel(nodeType) }),
+        ...(nodeType === NodeType.BUSINESS_LAYER && { 
+          type: undefined, // 最初はプレーンコンテナ
+          containerSize: { width: 300, height: 200 }
+        })
+      }
+    }
+    
+    setNodes((nds) => [...nds, newNode])
+  }, [setNodes])
+
+  // デフォルトノードラベルを取得
+  const getDefaultNodeLabel = (nodeType: NodeType): string => {
+    switch (nodeType) {
+      case NodeType.CXO:
+        return '新しいCXO'
+      case NodeType.BUSINESS:
+        return '新しい事業'
+      case NodeType.TASK:
+        return '新しい業務'
+      case NodeType.EXECUTOR:
+        return '新しい実行者'
+      case NodeType.BUSINESS_LAYER:
+        return '新しいコンテナ'
+      default:
+        return '新しいノード'
+    }
+  }
+
+  // ドロップイベントハンドラー
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault()
+    
+    const reactFlowBounds = event.currentTarget.getBoundingClientRect()
+    const data = event.dataTransfer.getData('application/reactflow')
+    
+    if (!data) return
+    
+    try {
+      const { type } = JSON.parse(data)
+      const position = {
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top
+      }
+      
+      handleNodeDrop(type, position)
+    } catch (error) {
+      console.error('ドロップデータの解析エラー:', error)
+    }
+  }, [handleNodeDrop])
+
+  // ドラッグオーバーハンドラー
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }, [])
+
+
+  // 接続線再接続ハンドラー
+  const onReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    console.log('✅ 接続線を再接続:', oldEdge, newConnection)
+    setEdges((els) => reconnectEdge(oldEdge, newConnection, els))
+  }, [setEdges])
+
+  // 接続可能性チェック
+  const isValidConnection = useCallback((connection: Connection) => {
+    const sourceNode = nodes.find(node => node.id === connection.source)
+    const targetNode = nodes.find(node => node.id === connection.target)
+    
+    if (!sourceNode || !targetNode) return false
+    
+    // 同じノードへの接続は禁止
+    if (connection.source === connection.target) return false
+    
+    // 循環参照チェック（簡易版）
+    if (edges.some(edge => 
+      edge.source === connection.target && edge.target === connection.source
+    )) return false
+    
+    // カスタム接続ルール（例：会社→CXO、CXO→事業など）
+    const sourceType = sourceNode.type
+    const targetType = targetNode.type
+    
+    // 基本的な階層ルール
+    const validConnections: Record<NodeType, NodeType[]> = {
+      [NodeType.COMPANY]: [NodeType.CXO, NodeType.CXO_LAYER, NodeType.BUSINESS_LAYER],
+      [NodeType.CXO]: [NodeType.BUSINESS, NodeType.BUSINESS_LAYER, NodeType.CXO_LAYER],
+      [NodeType.POSITION]: [NodeType.BUSINESS, NodeType.BUSINESS_LAYER, NodeType.CXO_LAYER],
+      [NodeType.CXO_LAYER]: [NodeType.CXO, NodeType.BUSINESS_LAYER],
+      [NodeType.BUSINESS_LAYER]: [NodeType.BUSINESS, NodeType.TASK],
+      [NodeType.BUSINESS]: [NodeType.TASK, NodeType.EXECUTOR],
+      [NodeType.TASK]: [NodeType.EXECUTOR],
+      [NodeType.EXECUTOR]: [],
+    }
+    
+    return validConnections[sourceType]?.includes(targetType) || false
+  }, [nodes, edges])
+
+  // 接続線再接続開始ハンドラー
+  const onReconnectStart = useCallback((_: any, edge: Edge) => {
+    console.log('🔄 接続線再接続開始:', edge)
+    setIsReconnecting(true)
+    setReconnectingEdge(edge)
+  }, [])
+
+  // 接続線再接続終了ハンドラー
+  const onReconnectEnd = useCallback(() => {
+    console.log('🔄 接続線再接続終了')
+    setIsReconnecting(false)
+    setReconnectingEdge(null)
+  }, [])
+
+  // エッジ削除ハンドラー
+  const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
+    console.log('🗑️ 接続線を削除:', edgesToDelete)
+    setEdges((eds) => eds.filter(edge => !edgesToDelete.some(delEdge => delEdge.id === edge.id)))
+  }, [setEdges])
+
   // ノードタイプマッピングを作成（関数定義後に配置）
   const nodeTypes = createNodeTypes(handleCardPlusClick, handleEditNode, handleDeleteNode)
+  
+  // エッジタイプマッピング
+  const edgeTypes = {
+    default: CustomEdge
+  }
 
   if (isLoading) {
     return (
@@ -348,6 +542,13 @@ export default function OrganizationFlowBoard({
         }
         .react-flow__edge {
           z-index: 1000 !important;
+          pointer-events: auto !important;
+        }
+        .react-flow__edge-path {
+          pointer-events: auto !important;
+        }
+        .react-flow__edge-interaction {
+          pointer-events: auto !important;
         }
         .react-flow__node:not(.react-flow__node-business_layer):not(.react-flow__node-cxo_layer) {
           z-index: 100 !important;
@@ -361,15 +562,25 @@ export default function OrganizationFlowBoard({
         .react-flow__node.dragging {
           cursor: grabbing !important;
         }
+        
       `}</style>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onReconnect={onReconnect}
+        onReconnectStart={onReconnectStart}
+        onReconnectEnd={onReconnectEnd}
+        isValidConnection={(connection) => isValidConnection(connection as Connection)}
         onNodeDragStop={onNodeDragStop}
+        onEdgesDelete={onEdgesDelete}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        deleteKeyCode="Delete"
         fitView
         fitViewOptions={{ padding: 0.1 }}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
@@ -377,13 +588,20 @@ export default function OrganizationFlowBoard({
         maxZoom={2}
         snapToGrid
         snapGrid={[20, 20]}
-        connectionLineStyle={{ stroke: '#4c6ef5', strokeWidth: 2 }}
+        connectionLineStyle={{ 
+          stroke: isReconnecting ? '#22c55e' : '#4c6ef5', 
+          strokeWidth: 3,
+          strokeDasharray: isReconnecting ? '10,5' : '0'
+        }}
         defaultEdgeOptions={{
+          type: 'default',
           style: { 
             strokeWidth: 2,
             strokeDasharray: '2,4'
           },
-          animated: true
+          animated: true,
+          reconnectable: true,
+          deletable: true
         }}
       >
         {/* 背景パターン */}
@@ -412,47 +630,15 @@ export default function OrganizationFlowBoard({
           }}
         />
         
+        {/* 新しいノードツールバー */}
+        <NodeToolbar onNodeDrop={handleNodeDrop} />
+
         {/* 情報パネル */}
-        <Panel position="top-left" className="bg-white rounded-lg shadow-lg p-4">
+        <Panel position="top-right" className="bg-white rounded-lg shadow-lg p-4">
           <h3 className="text-lg font-bold text-gray-800 mb-2">組織図</h3>
           <div className="text-sm text-gray-600">
             <p>ノード数: {nodes.length}</p>
             <p>接続数: {edges.length}</p>
-          </div>
-        </Panel>
-
-        {/* 追加ボタンパネル */}
-        <Panel position="top-right" className="bg-white rounded-lg shadow-lg p-4">
-          <h3 className="text-lg font-bold text-gray-800 mb-3">ノード追加</h3>
-          <div className="space-y-2">
-            <button
-              onClick={() => {
-                setSelectedParentNode(null)
-                setIsAddModalOpen(true)
-              }}
-              className="w-full px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
-            >
-              + 新規ノード
-            </button>
-            <button
-              onClick={() => handleContainerClick('cxo-layer', NodeType.CXO_LAYER)}
-              className="w-full px-3 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 text-sm"
-            >
-              + CXOレイヤーに追加
-            </button>
-            {layers.map((layer: any) => (
-              <button
-                key={layer.id}
-                onClick={() => handleContainerClick(`layer-${layer.id}`, NodeType.BUSINESS_LAYER)}
-                className={`w-full px-3 py-2 text-white rounded-md text-sm ${
-                  layer.type === 'business' 
-                    ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-blue-500 hover:bg-blue-600'
-                }`}
-              >
-                + {layer.name}レイヤーに追加
-              </button>
-            ))}
           </div>
         </Panel>
       </ReactFlow>

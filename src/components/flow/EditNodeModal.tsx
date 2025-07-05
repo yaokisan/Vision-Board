@@ -7,7 +7,7 @@ interface EditNodeModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (nodeId: string, updatedData: any) => void
-  nodeData: { id: string; data: any } | null
+  nodeData: { id: string; type: string; data: any } | null
 }
 
 export default function EditNodeModal({ 
@@ -23,20 +23,25 @@ export default function EditNodeModal({
     responsible_person: '',
     role: '',
     title: '',
-    description: ''
+    description: '',
+    type: '',
+    color: ''
   })
 
   useEffect(() => {
-    if (nodeData?.data?.entity) {
-      const entity = nodeData.data.entity
+    if (nodeData?.data) {
+      const data = nodeData.data
+      const entity = data.entity || {}
       setFormData({
-        name: entity.name || '',
+        name: entity.name || data.ceoName || data.label || '',
         person_name: entity.person_name || '',
         goal: entity.goal || '',
         responsible_person: entity.responsible_person || '',
         role: entity.role || '',
         title: entity.title || '',
-        description: entity.description || ''
+        description: data.description || entity.description || '',
+        type: data.type || entity.type || '',
+        color: data.color || entity.color || ''
       })
     }
   }, [nodeData])
@@ -63,61 +68,62 @@ export default function EditNodeModal({
 
   const renderFormFields = () => {
     const entity = nodeData.data.entity
+    const nodeType = nodeData.type
     
-    // CXOカード
-    if (entity.person_name !== undefined && entity.name) {
-      return (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">役職名</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">氏名</label>
-            <input
-              type="text"
-              value={formData.person_name}
-              onChange={(e) => setFormData({ ...formData, person_name: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              required
-            />
-          </div>
-        </>
-      )
-    }
-    
-    // 事業・業務カード
-    if (entity.goal !== undefined) {
-      return (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {entity.responsible_person ? '事業名/業務名' : '名前'}
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">目標</label>
-            <input
-              type="text"
-              value={formData.goal}
-              onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-            />
-          </div>
-          {entity.responsible_person !== undefined && (
+    // ノードタイプに基づいて適切なフォームを表示
+    switch (nodeType) {
+      case NodeType.CXO:
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">役職名</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: CTO, CFO"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">氏名</label>
+              <input
+                type="text"
+                value={formData.person_name}
+                onChange={(e) => setFormData({ ...formData, person_name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 田中太郎"
+                required
+              />
+            </div>
+          </>
+        )
+      
+      case NodeType.BUSINESS:
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">事業名</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: Webサービス事業"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">目標</label>
+              <input
+                type="text"
+                value={formData.goal}
+                onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 売上1億円"
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">責任者</label>
               <input
@@ -125,55 +131,138 @@ export default function EditNodeModal({
                 value={formData.responsible_person}
                 onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 佐藤花子"
+              />
+            </div>
+          </>
+        )
+      
+      case NodeType.TASK:
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">業務名</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: マーケティング業務"
                 required
               />
             </div>
-          )}
-        </>
-      )
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">目標</label>
+              <input
+                type="text"
+                value={formData.goal}
+                onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 月間リード100件獲得"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">責任者</label>
+              <input
+                type="text"
+                value={formData.responsible_person}
+                onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 山田一郎"
+              />
+            </div>
+          </>
+        )
+      
+      case NodeType.EXECUTOR:
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">役割</label>
+              <input
+                type="text"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: デザイナー"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">実行者名</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 鈴木次郎"
+                required
+              />
+            </div>
+          </>
+        )
+      
+      case NodeType.BUSINESS_LAYER:
+      case NodeType.CXO_LAYER:
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">コンテナタイトル</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 開発部門、経営レイヤー"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">説明文</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 開発・技術・エンジニアリングエリア"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">コンテナ色</label>
+              <select
+                value={formData.color || (nodeData.type === NodeType.CXO_LAYER ? 'purple' : 'gray')}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              >
+                <option value="gray">グレー</option>
+                <option value="blue">ブルー</option>
+                <option value="green">グリーン</option>
+                <option value="purple">パープル</option>
+                <option value="red">レッド</option>
+                <option value="yellow">イエロー</option>
+                <option value="indigo">インディゴ</option>
+                <option value="pink">ピンク</option>
+              </select>
+            </div>
+          </>
+        )
+      
+      default:
+        // 従来の会社カードなど
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">名前</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                required
+              />
+            </div>
+          </>
+        )
     }
-    
-    // 実行者カード
-    if (entity.role !== undefined) {
-      return (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">氏名</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">役割</label>
-            <input
-              type="text"
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              required
-            />
-          </div>
-        </>
-      )
-    }
-    
-    // 会社カード
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">会社名</label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-          required
-        />
-      </div>
-    )
   }
 
   return (

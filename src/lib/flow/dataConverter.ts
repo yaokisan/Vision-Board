@@ -181,7 +181,9 @@ export class FlowDataConverter {
             strokeWidth: 2,
             strokeDasharray: '2,4'
           },
-          animated: true
+          animated: true,
+          reconnectable: true,
+          deletable: true
         })
       }
     })
@@ -200,7 +202,9 @@ export class FlowDataConverter {
             strokeWidth: 2,
             strokeDasharray: '2,4'
           },
-          animated: true
+          animated: true,
+          reconnectable: true,
+          deletable: true
         })
       })
     }
@@ -218,7 +222,9 @@ export class FlowDataConverter {
             strokeWidth: 2,
             strokeDasharray: '2,4'
           },
-          animated: true
+          animated: true,
+          reconnectable: true,
+          deletable: true
         })
       }
     })
@@ -235,7 +241,8 @@ export class FlowDataConverter {
           strokeWidth: 1,
           strokeDasharray: '4,2'
         },
-        animated: true
+        animated: true,
+        reconnectable: true
       })
     })
     
