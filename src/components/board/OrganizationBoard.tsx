@@ -177,7 +177,7 @@ export default function OrganizationBoard() {
       <div className="p-8 min-w-[2000px] min-h-[1500px]">
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="relative">
-            {/* 統合接続線コンテナ */}
+            {/* 統合接続線コンテナ - キャンバス変形内に配置 */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
               style={{ zIndex: 10, overflow: 'visible' }}
