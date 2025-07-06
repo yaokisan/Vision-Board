@@ -128,8 +128,8 @@ export default function CompanyCard({
               <div data-testid="ceo-selector">
                 <MemberSelector
                   members={members}
-                  value={editCeoId}
-                  onChange={setEditCeoId}
+                  selectedMemberId={editCeoId}
+                  onSelect={setEditCeoId}
                   placeholder="CEOを選択してください"
                 />
               </div>
