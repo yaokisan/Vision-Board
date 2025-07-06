@@ -81,7 +81,9 @@ export default function BusinessFlowNode({ data, onAddNode, onEditNode, onDelete
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onAddNode?.(id || data.entity.id, e)
+                const nodeId = id || data.entity.id
+                console.log('🟢 BusinessFlowNode Plus Button Clicked:', { nodeId, id, entityId: data.entity.id, entity: data.entity })
+                onAddNode?.(nodeId, e)
               }}
               className="w-6 h-6 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-colors z-50"
               style={{ zIndex: 1000 }}

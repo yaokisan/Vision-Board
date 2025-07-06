@@ -358,18 +358,22 @@ export class NodeDataService {
           break
 
         case 'layers':
+          // undefinedの値を除外してオブジェクトを構築
+          const layerUpdateData: any = {
+            updated_at: timestamp
+          }
+          
+          if (updatedData.name !== undefined) layerUpdateData.name = updatedData.name
+          if (updatedData.type !== undefined) layerUpdateData.type = updatedData.type
+          if (updatedData.description !== undefined) layerUpdateData.description = updatedData.description
+          if (updatedData.color !== undefined) layerUpdateData.color = updatedData.color
+          if (updatedData.displayTab !== undefined) layerUpdateData.display_tab = updatedData.displayTab
+          if (updatedData.containerSize?.width !== undefined) layerUpdateData.width = updatedData.containerSize.width
+          if (updatedData.containerSize?.height !== undefined) layerUpdateData.height = updatedData.containerSize.height
+          
           updateQuery = supabase
             .from('layers')
-            .update({
-              name: updatedData.name,
-              type: updatedData.type,
-              description: updatedData.description,
-              color: updatedData.color,
-              display_tab: updatedData.displayTab,
-              width: updatedData.containerSize?.width,
-              height: updatedData.containerSize?.height,
-              updated_at: timestamp
-            })
+            .update(layerUpdateData)
             .eq('id', id)
           break
 

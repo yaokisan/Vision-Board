@@ -332,7 +332,7 @@ export default function OrganizationFlowBoard({
   // カードのプラスボタンクリックでインラインモーダルを開く
   const handleCardPlusClick = useCallback(
     (parentEntityId: string, event?: React.MouseEvent) => {
-      console.log('Plus button clicked for parent entity:', parentEntityId)
+      console.log('🔵 handleCardPlusClick called:', { parentEntityId, event: !!event, nodes: nodes.length })
       
       if (event) {
         // ボタンの位置を取得してモーダルを表示
@@ -368,18 +368,26 @@ export default function OrganizationFlowBoard({
         )
       }
       
-      console.log('Found parent node:', parentNode)
+      console.log('🔍 Parent node search result:', { 
+        parentEntityId, 
+        parentNode: parentNode ? { id: parentNode.id, type: parentNode.type } : null,
+        totalNodes: nodes.length,
+        nodeIds: nodes.map(n => ({ id: n.id, entityId: n.data.entity?.id }))
+      })
       
       if (parentNode) {
+        console.log('✅ Setting parent node:', { id: parentNode.id, type: parentNode.type })
         setSelectedParentNode({ id: parentNode.id, type: parentNode.type as NodeType })
       } else {
-        console.warn('Parent node not found for entity ID:', parentEntityId)
+        console.warn('❌ Parent node not found for entity ID:', parentEntityId)
         // デフォルトとして会社ノードに設定
         const companyNode = nodes.find(node => node.type === NodeType.COMPANY)
         if (companyNode) {
+          console.log('🏢 Using company node as fallback:', companyNode.id)
           setSelectedParentNode({ id: companyNode.id, type: NodeType.COMPANY })
         }
       }
+      console.log('📂 Opening inline modal')
       setIsInlineModalOpen(true)
     },
     [nodes]
