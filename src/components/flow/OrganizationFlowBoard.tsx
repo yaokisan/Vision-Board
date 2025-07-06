@@ -29,6 +29,7 @@ import {
   ExecutorFlowNode 
 } from './nodes'
 import { FlowDataConverter } from '@/lib/flow/dataConverter'
+import { NodeDataService } from '@/lib/services/nodeDataService'
 import AddNodeModal from './AddNodeModal'
 import InlineCardModal from './InlineCardModal'
 import EditNodeModal from './EditNodeModal'
@@ -110,8 +111,18 @@ export default function OrganizationFlowBoard({
     setIsMounted(true)
   }, [])
 
-  // データ変換とReact Flow初期化
+  // データ変換とReact Flow初期化（nodePositionsの更新は別途管理）
   useEffect(() => {
+    if (!isMounted) return
+    
+    console.log('🔴 useEffect TRIGGERED - Dependencies changed:', {
+      companies: companies.length,
+      positions: positions.length,
+      viewMode,
+      selectedBusinessId,
+      timestamp: new Date().toISOString()
+    })
+    
     try {
       const flowData = FlowDataConverter.convertToFlowDataWithContainerFilter(
         companies,
@@ -124,10 +135,33 @@ export default function OrganizationFlowBoard({
         selectedBusinessId
       )
       
-      // 保存されたノード位置を復元
-      const nodesWithSavedPositions = flowData.nodes.map(node => {
+      console.log('🟡 SETTING NODES - Count:', flowData.nodes.length, 'at', new Date().toISOString())
+      setNodes(flowData.nodes)
+      setEdges(flowData.edges)
+      setIsLoading(false)
+      
+      // 初期ズーム率を設定
+      setTimeout(() => {
+        const viewport = getViewport()
+        setCurrentZoom(Math.round(viewport.zoom * 100))
+      }, 100)
+    } catch (error) {
+      console.error('Flow data conversion error:', error)
+      setIsLoading(false)
+    }
+  }, [companies, positions, layers, businesses, tasks, executors, viewMode, selectedBusinessId, isMounted, setNodes, setEdges, getViewport])
+
+  // ノード位置の復元を別のuseEffectで管理
+  useEffect(() => {
+    if (!isMounted || Object.keys(nodePositions).length === 0) return
+
+    console.log('📍 RESTORING NODE POSITIONS:', Object.keys(nodePositions).length, 'positions')
+    
+    setNodes(currentNodes => 
+      currentNodes.map(node => {
         const savedPosition = nodePositions[node.id]
         if (savedPosition) {
+          console.log('📍 RESTORING POSITION for', node.id, savedPosition)
           return {
             ...node,
             position: savedPosition
@@ -135,22 +169,8 @@ export default function OrganizationFlowBoard({
         }
         return node
       })
-      
-      setNodes(nodesWithSavedPositions)
-      setEdges(flowData.edges)
-      setIsLoading(false)
-      // 初期ズーム率を設定
-      if (isMounted) {
-        setTimeout(() => {
-          const viewport = getViewport()
-          setCurrentZoom(Math.round(viewport.zoom * 100))
-        }, 100)
-      }
-    } catch (error) {
-      console.error('Flow data conversion error:', error)
-      setIsLoading(false)
-    }
-  }, [companies, positions, layers, businesses, tasks, executors, viewMode, selectedBusinessId, nodePositions, setNodes, setEdges, getViewport, isMounted])
+    )
+  }, [nodePositions, isMounted, setNodes])
 
   // エッジ接続ハンドラー
   const onConnect = useCallback((params: Connection) => {
@@ -176,7 +196,7 @@ export default function OrganizationFlowBoard({
   // ノード移動保存ハンドラー
   const onNodeDragStop = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      console.log('Node moved:', node.id, node.position)
+      console.log('🔵 DRAG STOP:', node.id, node.position, 'at', new Date().toISOString())
       // タブ別ノード位置保持機能
       if (onNodePositionUpdate) {
         onNodePositionUpdate(node.id, node.position)
@@ -187,7 +207,8 @@ export default function OrganizationFlowBoard({
 
   // ノード追加ハンドラー
   const handleAddNode = useCallback(
-    (nodeType: NodeType, nodeData: any) => {
+    async (nodeType: NodeType, nodeData: any) => {
+      console.log('🟠 HANDLE ADD NODE CALLED:', { nodeType, nodeData })
       let finalNodeType = nodeType
       let finalData = { ...nodeData }
       
@@ -202,15 +223,36 @@ export default function OrganizationFlowBoard({
         }
       }
 
+      const position = { 
+        x: Math.random() * 200 + 100, 
+        y: Math.random() * 200 + 100 
+      }
+
+      // データベースに保存
+      console.log('💾 SAVING NODE TO DATABASE:', { finalNodeType, finalData, position })
+      const saveResult = await NodeDataService.saveNewNode({
+        nodeType: finalNodeType,
+        data: finalData,
+        position,
+        parentNodeId: selectedParentNode?.id,
+        companyId: currentUser.company_id
+      })
+
+      if (!saveResult.success) {
+        console.error('❌ NODE SAVE FAILED:', saveResult.error)
+        // TODO: ユーザーにエラー表示
+        return
+      }
+
+      console.log('✅ NODE SAVED SUCCESSFULLY:', saveResult.nodeId)
+
+      // 保存成功後、React Flow状態を更新
       const newNode: FlowNode = {
-        id: nodeData.id,
+        id: `${finalNodeType.toLowerCase()}-${saveResult.nodeId}`, // データベースのIDを使用
         type: finalNodeType,
-        position: { 
-          x: Math.random() * 200 + 100, 
-          y: Math.random() * 200 + 100 
-        },
+        position,
         data: {
-          entity: finalData,
+          entity: { ...finalData, id: saveResult.nodeId }, // データベースIDを追加
           label: finalData.name || finalData.person_name || finalData.title || 'New Node',
           size: finalData.containerSize || { width: 224, height: 120 },
           ...(finalNodeType === NodeType.BUSINESS_LAYER && {
@@ -229,9 +271,9 @@ export default function OrganizationFlowBoard({
       // 自動接続エッジを追加
       if (selectedParentNode) {
         const newEdge = {
-          id: `${selectedParentNode.id}-${nodeData.id}`,
+          id: `${selectedParentNode.id}-${newNode.id}`,
           source: selectedParentNode.id,
-          target: nodeData.id,
+          target: newNode.id,
           type: 'default',
           style: { 
             strokeWidth: 2,
@@ -242,7 +284,7 @@ export default function OrganizationFlowBoard({
         setEdges((eds) => [...eds, newEdge])
       }
     },
-    [selectedParentNode, setNodes, setEdges]
+    [selectedParentNode, setNodes, setEdges, currentUser.company_id]
   )
 
   // コンテナクリックでノード追加モーダルを開く
@@ -413,17 +455,51 @@ export default function OrganizationFlowBoard({
   }, [])
 
   // ドラッグ&ドロップでノード追加
-  const handleNodeDrop = useCallback((nodeType: NodeType, position: { x: number, y: number }) => {
+  const handleNodeDrop = useCallback(async (nodeType: NodeType, position: { x: number, y: number }) => {
+    console.log('🎯 DRAG DROP NODE:', { nodeType, position })
+    
+    // デフォルトデータを準備
+    const defaultData = {
+      name: getDefaultNodeLabel(nodeType),
+      ...(nodeType === NodeType.CXO && { person_name: '' }),
+      ...(nodeType === NodeType.BUSINESS && { goal: '', responsible_person: '' }),
+      ...(nodeType === NodeType.TASK && { goal: '', responsible_person: '' }),
+      ...(nodeType === NodeType.EXECUTOR && { role: '' }),
+      ...(nodeType === NodeType.BUSINESS_LAYER && { 
+        type: 'business',
+        title: getDefaultNodeLabel(nodeType)
+      })
+    }
+
+    // データベースに保存
+    console.log('💾 SAVING DRAG-DROPPED NODE TO DATABASE:', { nodeType, defaultData, position })
+    const saveResult = await NodeDataService.saveNewNode({
+      nodeType,
+      data: defaultData,
+      position,
+      parentNodeId: undefined, // ドラッグ&ドロップは親なし
+      companyId: currentUser.company_id
+    })
+
+    if (!saveResult.success) {
+      console.error('❌ DRAG-DROP NODE SAVE FAILED:', saveResult.error)
+      // TODO: ユーザーにエラー表示
+      return
+    }
+
+    console.log('✅ DRAG-DROP NODE SAVED SUCCESSFULLY:', saveResult.nodeId)
+
+    // 保存成功後、React Flow状態を更新
     const newNode: FlowNode = {
-      id: `${nodeType.toLowerCase()}-${Date.now()}`,
+      id: `${nodeType.toLowerCase()}-${saveResult.nodeId}`, // データベースIDを使用
       type: nodeType,
       position,
       data: {
-        entity: {},
+        entity: { ...defaultData, id: saveResult.nodeId }, // データベースIDを追加
         label: getDefaultNodeLabel(nodeType),
         ...(nodeType === NodeType.CXO && { ceoName: getDefaultNodeLabel(nodeType) }),
         ...(nodeType === NodeType.BUSINESS_LAYER && { 
-          type: undefined, // 最初はプレーンコンテナ
+          type: defaultData.type,
           containerSize: { width: 300, height: 200 },
           size: { width: 300, height: 200 }
         })
@@ -431,7 +507,7 @@ export default function OrganizationFlowBoard({
     }
     
     setNodes((nds) => [...nds, newNode])
-  }, [setNodes])
+  }, [setNodes, currentUser.company_id])
 
   // デフォルトノードラベルを取得
   const getDefaultNodeLabel = (nodeType: NodeType): string => {

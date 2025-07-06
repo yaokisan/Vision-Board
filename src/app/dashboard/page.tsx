@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import { OrganizationDataService, OrganizationData } from '@/lib/services/organizationDataService'
+import { NodePositionService } from '@/lib/services/nodePositionService'
 
 function DashboardContent() {
   const { user, member: currentUser, signOut } = useAuth()
@@ -57,16 +58,35 @@ function DashboardContent() {
     return viewMode === 'company' ? 'company' : selectedBusiness || 'company'
   }
   
-  // ノード位置更新ハンドラー
-  const handleNodePositionUpdate = (nodeId: string, position: { x: number; y: number }) => {
+  // ノード位置更新ハンドラー（データベースに保存）
+  const handleNodePositionUpdate = async (nodeId: string, position: { x: number; y: number }) => {
+    console.log('🟢 POSITION UPDATE:', nodeId, position, 'at', new Date().toISOString())
+    
+    // ローカル状態を即座に更新（UX向上）
     const currentTabKey = getCurrentTabKey()
-    setNodePositionsByTab(prev => ({
-      ...prev,
-      [currentTabKey]: {
-        ...prev[currentTabKey],
-        [nodeId]: position
+    console.log('🟢 UPDATING TAB:', currentTabKey)
+    setNodePositionsByTab(prev => {
+      const newState = {
+        ...prev,
+        [currentTabKey]: {
+          ...prev[currentTabKey],
+          [nodeId]: position
+        }
       }
-    }))
+      console.log('🟢 NEW STATE:', newState)
+      return newState
+    })
+
+    // データベースに非同期で保存
+    try {
+      const result = await NodePositionService.saveNodePosition(nodeId, position)
+      if (!result.success) {
+        console.error('ノード位置保存エラー:', result.error)
+        // エラー時はユーザーに通知（必要に応じて）
+      }
+    } catch (error) {
+      console.error('ノード位置保存例外:', error)
+    }
   }
 
   // ログアウトハンドラー

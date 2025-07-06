@@ -75,6 +75,7 @@ export default function AddNodeModal({
       parentNodeId
     }
 
+    console.log('🔵 ADD NODE MODAL SUBMIT:', { selectedType, nodeData })
     onAddNode(selectedType, nodeData)
     onClose()
     setSelectedType(null)

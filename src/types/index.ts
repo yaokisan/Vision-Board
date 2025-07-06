@@ -1,6 +1,8 @@
 export interface Company {
   id: string;
   name: string;
+  position_x?: number;
+  position_y?: number;
   created_at: string;
   updated_at: string;
 }

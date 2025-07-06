@@ -33,10 +33,31 @@ export class FlowDataConverter {
     companies.forEach(company => {
       const ceo = positions.find(p => p.company_id === company.id && p.name === 'CEO')
       
+      // デバッグ: 会社の位置情報をログ出力
+      console.log('🏢 COMPANY POSITION DATA:', {
+        id: company.id,
+        name: company.name,
+        position_x: (company as any).position_x,
+        position_y: (company as any).position_y,
+        company
+      })
+      
+      const savedX = (company as any).position_x
+      const savedY = (company as any).position_y
+      const defaultPosition = { x: 500, y: 50 }
+      
+      // 文字列の"0"も有効な位置として扱う
+      const hasValidPosition = (savedX !== null && savedX !== undefined && savedY !== null && savedY !== undefined)
+      const finalPosition = hasValidPosition
+        ? { x: Number(savedX), y: Number(savedY) }
+        : defaultPosition
+      
+      console.log('🏢 FINAL POSITION:', company.name, finalPosition)
+      
       nodes.push({
         id: `company-${company.id}`,
         type: NodeType.COMPANY,
-        position: { x: 500, y: 50 }, // 中央上部
+        position: finalPosition,
         data: {
           entity: company,
           label: company.name,
@@ -71,7 +92,14 @@ export class FlowDataConverter {
         nodes.push({
           id: `position-${position.id}`,
           type: NodeType.CXO,
-          position: { x: 50 + index * 280, y: 50 },
+          position: { 
+            x: (position as any).position_x !== null && (position as any).position_x !== undefined 
+              ? Number((position as any).position_x) 
+              : (50 + index * 280), 
+            y: (position as any).position_y !== null && (position as any).position_y !== undefined 
+              ? Number((position as any).position_y) 
+              : 50 
+          },
           data: {
             entity: position,
             label: `${position.name}: ${position.person_name}`,
@@ -109,8 +137,12 @@ export class FlowDataConverter {
         id: `business-${business.id}`,
         type: NodeType.BUSINESS,
         position: { 
-          x: business.position_x || 50 + (index % 2) * 280, 
-          y: business.position_y || 50 + Math.floor(index / 2) * 200
+          x: business.position_x !== null && business.position_x !== undefined 
+            ? Number(business.position_x) 
+            : 50 + (index % 2) * 280, 
+          y: business.position_y !== null && business.position_y !== undefined 
+            ? Number(business.position_y) 
+            : 50 + Math.floor(index / 2) * 200
         },
         data: {
           entity: business,
@@ -132,8 +164,12 @@ export class FlowDataConverter {
         id: `task-${task.id}`,
         type: NodeType.TASK,
         position: { 
-          x: task.position_x || 50 + (index % 2) * 240, 
-          y: task.position_y || 250 + Math.floor(index / 2) * 120
+          x: task.position_x !== null && task.position_x !== undefined 
+            ? Number(task.position_x) 
+            : 50 + (index % 2) * 240, 
+          y: task.position_y !== null && task.position_y !== undefined 
+            ? Number(task.position_y) 
+            : 250 + Math.floor(index / 2) * 120
         },
         data: {
           entity: task,
@@ -156,8 +192,12 @@ export class FlowDataConverter {
         id: `executor-${executor.id}`,
         type: NodeType.EXECUTOR,
         position: { 
-          x: executor.position_x || 50 + (index % 3) * 200, 
-          y: executor.position_y || 400 + Math.floor(index / 3) * 100
+          x: executor.position_x !== null && executor.position_x !== undefined 
+            ? Number(executor.position_x) 
+            : 50 + (index % 3) * 200, 
+          y: executor.position_y !== null && executor.position_y !== undefined 
+            ? Number(executor.position_y) 
+            : 400 + Math.floor(index / 3) * 100
         },
         data: {
           entity: executor,
