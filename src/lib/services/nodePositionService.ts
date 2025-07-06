@@ -83,6 +83,7 @@ export class NodePositionService {
    * ノードIDの形式:
    * - company-{uuid}: companiesテーブル
    * - position-{uuid}: positionsテーブル  
+   * - layer-{uuid}: layersテーブル
    * - business-{uuid}: businessesテーブル
    * - task-{uuid}: tasksテーブル
    * - executor-{uuid}: executorsテーブル
@@ -100,6 +101,7 @@ export class NodePositionService {
     const tableMap: Record<string, string> = {
       'company': 'companies',
       'position': 'positions',
+      'layer': 'layers',
       'business': 'businesses', 
       'task': 'tasks',
       'executor': 'executors'

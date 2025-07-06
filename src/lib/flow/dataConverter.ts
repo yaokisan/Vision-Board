@@ -115,10 +115,31 @@ export class FlowDataConverter {
     
     // 事業・経営レイヤーコンテナ
     layers.forEach((layer, index) => {
+      // デバッグ: レイヤーの位置情報をログ出力
+      console.log('📋 LAYER POSITION DATA:', {
+        id: layer.id,
+        name: layer.name,
+        position_x: (layer as any).position_x,
+        position_y: (layer as any).position_y,
+        layer
+      })
+      
+      const savedX = (layer as any).position_x
+      const savedY = (layer as any).position_y
+      const defaultPosition = { x: 100 + index * 600, y: 500 }
+      
+      // 文字列の"0"も有効な位置として扱う
+      const hasValidPosition = (savedX !== null && savedX !== undefined && savedY !== null && savedY !== undefined)
+      const finalPosition = hasValidPosition
+        ? { x: Number(savedX), y: Number(savedY) }
+        : defaultPosition
+      
+      console.log('📋 FINAL LAYER POSITION:', layer.name, finalPosition)
+      
       nodes.push({
         id: `layer-${layer.id}`,
         type: NodeType.BUSINESS_LAYER,
-        position: { x: 100 + index * 600, y: 500 },
+        position: finalPosition,
         data: {
           entity: layer,
           label: `${layer.name}レイヤー`,
