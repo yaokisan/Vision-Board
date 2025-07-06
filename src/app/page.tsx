@@ -1,6 +1,9 @@
-import Link from 'next/link'
+'use client'
 
-export default function Home() {
+import Link from 'next/link'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+
+function HomeContent() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="text-center">
@@ -10,13 +13,29 @@ export default function Home() {
         <p className="text-xl text-gray-600 mb-8">
           動的組織図管理アプリケーション
         </p>
-        <Link
-          href="/dashboard"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-        >
-          ダッシュボードへ
-        </Link>
+        <div className="space-y-4">
+          <Link
+            href="/auth/login"
+            className="block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          >
+            ログイン
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="block bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          >
+            新規登録
+          </Link>
+        </div>
       </div>
     </main>
+  )
+}
+
+export default function Home() {
+  return (
+    <ProtectedRoute requireAuth={false}>
+      <HomeContent />
+    </ProtectedRoute>
   )
 }

@@ -2,22 +2,35 @@
 
 import Link from 'next/link'
 import { MemberManagement } from '@/components/settings/MemberManagement'
-import { Member } from '@/types'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { useAuth } from '@/contexts/AuthContext'
 
-// テスト用の現在ユーザー（実際のプロジェクトでは認証システムから取得）
-const getCurrentUser = (): Member => ({
-  id: '550e8400-e29b-41d4-a716-446655440020',
-  company_id: '550e8400-e29b-41d4-a716-446655440000',
-  name: '田中太郎',
-  email: 'tanaka@empire-art.com',
-  permission: 'admin',
-  member_type: 'core',
-  created_at: '2023-01-01T00:00:00Z',
-  updated_at: '2023-01-01T00:00:00Z'
-})
+function SettingsContent() {
+  const { user, member: currentUser } = useAuth()
 
-export default function SettingsPage() {
-  const currentUser = getCurrentUser()
+  // 認証ユーザーが無い場合はローディング
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // メンバーデータがない場合は一時的にサンプルユーザーを使用
+  const displayUser = currentUser || {
+    id: user.id,
+    company_id: '550e8400-e29b-41d4-a716-446655440000',
+    name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
+    email: user.email || '',
+    permission: 'admin' as const,
+    member_type: 'core' as const,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -43,8 +56,16 @@ export default function SettingsPage() {
       </div>
       
       <div className="max-w-7xl mx-auto px-8 py-8">
-        <MemberManagement currentUser={currentUser} />
+        <MemberManagement currentUser={displayUser} />
       </div>
     </main>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <ProtectedRoute>
+      <SettingsContent />
+    </ProtectedRoute>
   )
 }

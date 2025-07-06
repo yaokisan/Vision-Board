@@ -54,6 +54,8 @@ interface OrganizationFlowBoardProps {
   businesses: any[]
   tasks: any[]
   executors: any[]
+  members: any[]
+  currentUser: any
   viewMode?: 'company' | 'business'
   selectedBusinessId?: string | null
   // タブ別ノード位置保持機能
@@ -68,6 +70,8 @@ export default function OrganizationFlowBoard({
   businesses,
   tasks,
   executors,
+  members,
+  currentUser,
   viewMode = 'company' as 'company' | 'business',
   selectedBusinessId,
   nodePositions = {},
@@ -715,6 +719,8 @@ export default function OrganizationFlowBoard({
         }}
         onSave={handleSaveEditNode}
         nodeData={editingNode}
+        members={members}
+        currentUser={currentUser}
       />
 
       {/* 削除確認ポップアップ */}

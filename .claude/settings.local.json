@@ -21,7 +21,9 @@
       "Bash(git checkout:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(touch:*)",
+      "WebFetch(domain:supabase.com)"
     ],
     "deny": []
   }

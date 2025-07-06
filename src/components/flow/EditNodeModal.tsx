@@ -2,25 +2,33 @@
 
 import { useState, useEffect } from 'react'
 import { NodeType } from '@/types/flow'
+import { Member } from '@/types'
+import { MemberSelector } from './MemberSelector'
 
 interface EditNodeModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (nodeId: string, updatedData: any) => void
   nodeData: { id: string; type: string; data: any } | null
+  members: Member[]
+  currentUser: Member
 }
 
 export default function EditNodeModal({ 
   isOpen, 
   onClose, 
   onSave, 
-  nodeData 
+  nodeData,
+  members,
+  currentUser 
 }: EditNodeModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     person_name: '',
+    member_id: null as string | null,
     goal: '',
     responsible_person: '',
+    responsible_person_id: null as string | null,
     role: '',
     title: '',
     description: '',
@@ -36,8 +44,10 @@ export default function EditNodeModal({
       setFormData({
         name: entity.name || data.ceoName || data.label || '',
         person_name: entity.person_name || '',
+        member_id: entity.member_id || null,
         goal: entity.goal || '',
         responsible_person: entity.responsible_person || '',
+        responsible_person_id: entity.responsible_person_id || null,
         role: entity.role || '',
         title: entity.title || '',
         description: data.description || entity.description || '',
@@ -108,15 +118,25 @@ export default function EditNodeModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">氏名</label>
-              <input
-                type="text"
-                value={formData.person_name}
-                onChange={(e) => setFormData({ ...formData, person_name: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 田中太郎"
-                required
+              <label className="block text-sm font-medium text-gray-700 mb-1">担当者</label>
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.member_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    member_id: memberId,
+                    person_name: selectedMember?.name || ''
+                  })
+                }}
+                placeholder="担当者を選択..."
+                searchable={true}
+                className="w-full"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                この役職を担当するメンバーを選択してください
+              </p>
             </div>
           </>
         )
@@ -147,13 +167,24 @@ export default function EditNodeModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">責任者</label>
-              <input
-                type="text"
-                value={formData.responsible_person}
-                onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 佐藤花子"
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.responsible_person_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    responsible_person_id: memberId,
+                    responsible_person: selectedMember?.name || ''
+                  })
+                }}
+                placeholder="責任者を選択..."
+                searchable={true}
+                className="w-full"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                この事業の責任者を選択してください
+              </p>
             </div>
           </>
         )
@@ -184,13 +215,24 @@ export default function EditNodeModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">責任者</label>
-              <input
-                type="text"
-                value={formData.responsible_person}
-                onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 山田一郎"
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.responsible_person_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    responsible_person_id: memberId,
+                    responsible_person: selectedMember?.name || ''
+                  })
+                }}
+                placeholder="責任者を選択..."
+                searchable={true}
+                className="w-full"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                この業務の責任者を選択してください
+              </p>
             </div>
           </>
         )

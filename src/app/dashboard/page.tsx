@@ -4,9 +4,65 @@ import OrganizationFlowBoard from '@/components/flow/OrganizationFlowBoard'
 import { ReactFlowProvider } from '@xyflow/react'
 import { useState } from 'react'
 import Link from 'next/link'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { useAuth } from '@/contexts/AuthContext'
 
 // サンプルデータ（実際のプロジェクトではSupabaseから取得）
 const sampleData = {
+  // 現在ユーザー
+  currentUser: {
+    id: '550e8400-e29b-41d4-a716-446655440020',
+    company_id: '550e8400-e29b-41d4-a716-446655440000',
+    name: '田中太郎',
+    email: 'tanaka@empire-art.com',
+    permission: 'admin',
+    member_type: 'core',
+    created_at: '2023-01-01T00:00:00Z',
+    updated_at: '2023-01-01T00:00:00Z'
+  },
+  // メンバーリスト
+  members: [
+    {
+      id: '550e8400-e29b-41d4-a716-446655440020',
+      company_id: '550e8400-e29b-41d4-a716-446655440000',
+      name: '田中太郎',
+      email: 'tanaka@empire-art.com',
+      permission: 'admin',
+      member_type: 'core',
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2023-01-01T00:00:00Z'
+    },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440021',
+      company_id: '550e8400-e29b-41d4-a716-446655440000',
+      name: '佐藤花子',
+      email: 'sato@empire-art.com',
+      permission: 'viewer',
+      member_type: 'core',
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2023-01-01T00:00:00Z'
+    },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440022',
+      company_id: '550e8400-e29b-41d4-a716-446655440000',
+      name: '鈴木一郎',
+      email: 'suzuki@empire-art.com',
+      permission: 'restricted',
+      member_type: 'business',
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2023-01-01T00:00:00Z'
+    },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440023',
+      company_id: '550e8400-e29b-41d4-a716-446655440000',
+      name: '山田太郎',
+      email: 'yamada@empire-art.com',
+      permission: 'viewer',
+      member_type: 'business',
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2023-01-01T00:00:00Z'
+    }
+  ],
   companies: [
     {
       id: '1',
@@ -20,7 +76,8 @@ const sampleData = {
       id: '1',
       company_id: '1',
       name: 'CEO',
-      person_name: '田中太郎',
+      member_id: '550e8400-e29b-41d4-a716-446655440020', // 田中太郎
+      person_name: '田中太郎', // 後方互換性のため残す
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z'
     },
@@ -28,7 +85,8 @@ const sampleData = {
       id: '2',
       company_id: '1',
       name: 'CTO',
-      person_name: '佐藤花子',
+      member_id: '550e8400-e29b-41d4-a716-446655440021', // 佐藤花子
+      person_name: '佐藤花子', // 後方互換性のため残す
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z'
     },
@@ -36,7 +94,8 @@ const sampleData = {
       id: '3',
       company_id: '1',
       name: 'CFO',
-      person_name: '鈴木一郎',
+      member_id: '550e8400-e29b-41d4-a716-446655440022', // 鈴木一郎
+      person_name: '鈴木一郎', // 後方互換性のため残す
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z'
     }
@@ -76,7 +135,8 @@ const sampleData = {
       layer_id: '1',
       name: 'Webサービス事業',
       goal: 'ユーザー数100万人達成',
-      responsible_person: '田中太郎',
+      responsible_person_id: '550e8400-e29b-41d4-a716-446655440020', // 田中太郎
+      responsible_person: '田中太郎', // 後方互換性のため残す
       category: 'デジタル',
       position_x: 100,
       position_y: 400,
@@ -88,7 +148,8 @@ const sampleData = {
       layer_id: '1',
       name: 'コンサルティング事業',
       goal: '売上前年比150%',
-      responsible_person: '佐藤花子',
+      responsible_person_id: '550e8400-e29b-41d4-a716-446655440021', // 佐藤花子
+      responsible_person: '佐藤花子', // 後方互換性のため残す
       category: 'サービス',
       position_x: 400,
       position_y: 400,
@@ -103,7 +164,8 @@ const sampleData = {
       layer_id: '1',
       name: 'プロダクト開発',
       goal: '新機能リリース',
-      responsible_person: '山田太郎',
+      responsible_person_id: '550e8400-e29b-41d4-a716-446655440023', // 山田太郎
+      responsible_person: '山田太郎', // 後方互換性のため残す
       group_name: '開発',
       position_x: 100,
       position_y: 600,
@@ -116,7 +178,8 @@ const sampleData = {
       layer_id: '1',
       name: 'マーケティング',
       goal: 'ユーザー獲得',
-      responsible_person: '田中花子',
+      responsible_person_id: '550e8400-e29b-41d4-a716-446655440021', // 佐藤花子
+      responsible_person: '佐藤花子', // 後方互換性のため残す
       group_name: '営業',
       position_x: 300,
       position_y: 600,
@@ -129,7 +192,8 @@ const sampleData = {
       layer_id: '1',
       name: 'クライアント対応',
       goal: '顧客満足度向上',
-      responsible_person: '鈴木次郎',
+      responsible_person_id: '550e8400-e29b-41d4-a716-446655440022', // 鈴木一郎
+      responsible_person: '鈴木一郎', // 後方互換性のため残す
       group_name: 'CS',
       position_x: 400,
       position_y: 600,
@@ -191,7 +255,8 @@ const sampleData = {
   ]
 }
 
-export default function FlowDashboard() {
+function DashboardContent() {
+  const { user, member: currentUser, signOut } = useAuth()
   const [viewMode, setViewMode] = useState<'company' | 'business'>('company')
   const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null)
   
@@ -216,6 +281,35 @@ export default function FlowDashboard() {
         [nodeId]: position
       }
     }))
+  }
+
+  // ログアウトハンドラー
+  const handleSignOut = async () => {
+    await signOut()
+  }
+
+  // 認証ユーザーが無い場合はローディング
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // メンバーデータがない場合は一時的にサンプルユーザーを使用
+  const displayUser = currentUser || {
+    id: user.id,
+    company_id: '550e8400-e29b-41d4-a716-446655440000',
+    name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
+    email: user.email || '',
+    permission: 'admin' as const,
+    member_type: 'core' as const,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 
   return (
@@ -271,12 +365,30 @@ export default function FlowDashboard() {
                 <Link 
                   href="/settings"
                   className="p-2 text-gray-600 hover:text-blue-600 rounded-lg hover:bg-white transition-colors"
+                  title="設定"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.50 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </Link>
+
+                {/* ユーザー情報とログアウト */}
+                <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{displayUser.name}</p>
+                    <p className="text-xs text-gray-500">{displayUser.permission}</p>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-white transition-colors"
+                    title="ログアウト"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -288,6 +400,8 @@ export default function FlowDashboard() {
           businesses={sampleData.businesses}
           tasks={sampleData.tasks}
           executors={sampleData.executors}
+          members={sampleData.members}
+          currentUser={displayUser}
           viewMode={viewMode}
           selectedBusinessId={selectedBusiness}
           nodePositions={nodePositionsByTab[getCurrentTabKey()]}
@@ -295,5 +409,13 @@ export default function FlowDashboard() {
         />
       </main>
     </ReactFlowProvider>
+  )
+}
+
+export default function FlowDashboard() {
+  return (
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
   )
 }
