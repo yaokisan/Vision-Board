@@ -366,6 +366,8 @@ export class NodeDataService {
               description: updatedData.description,
               color: updatedData.color,
               display_tab: updatedData.displayTab,
+              width: updatedData.containerSize?.width,
+              height: updatedData.containerSize?.height,
               updated_at: timestamp
             })
             .eq('id', id)

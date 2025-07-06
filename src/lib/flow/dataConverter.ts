@@ -116,18 +116,23 @@ export class FlowDataConverter {
     
     // 事業・経営レイヤーコンテナ
     layers.forEach((layer, index) => {
-      // デバッグ: レイヤーの位置情報をログ出力
-      console.log('📋 LAYER POSITION DATA:', {
+      // デバッグ: レイヤーの位置・サイズ情報をログ出力
+      console.log('📋 LAYER POSITION & SIZE DATA:', {
         id: layer.id,
         name: layer.name,
         position_x: (layer as any).position_x,
         position_y: (layer as any).position_y,
+        width: (layer as any).width,
+        height: (layer as any).height,
         layer
       })
       
       const savedX = (layer as any).position_x
       const savedY = (layer as any).position_y
+      const savedWidth = (layer as any).width
+      const savedHeight = (layer as any).height
       const defaultPosition = { x: 100 + index * 600, y: 500 }
+      const defaultSize = { width: 500, height: 600 }
       
       // 文字列の"0"も有効な位置として扱う
       const hasValidPosition = (savedX !== null && savedX !== undefined && savedY !== null && savedY !== undefined)
@@ -135,7 +140,13 @@ export class FlowDataConverter {
         ? { x: Number(savedX), y: Number(savedY) }
         : defaultPosition
       
-      console.log('📋 FINAL LAYER POSITION:', layer.name, finalPosition)
+      // サイズ情報も同様に処理
+      const hasValidSize = (savedWidth !== null && savedWidth !== undefined && savedHeight !== null && savedHeight !== undefined)
+      const finalSize = hasValidSize
+        ? { width: Number(savedWidth), height: Number(savedHeight) }
+        : defaultSize
+      
+      console.log('📋 FINAL LAYER POSITION & SIZE:', layer.name, finalPosition, finalSize)
       
       nodes.push({
         id: `layer-${layer.id}`,
@@ -145,7 +156,7 @@ export class FlowDataConverter {
           entity: layer,
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
-          containerSize: { width: 500, height: 600 },
+          containerSize: finalSize,
           displayTab: layer.displayTab || 'company' // レイヤーのdisplayTabを使用
         },
         draggable: true,

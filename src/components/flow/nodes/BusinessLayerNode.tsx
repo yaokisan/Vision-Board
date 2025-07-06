@@ -2,6 +2,7 @@
 
 import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react'
 import { useState, useCallback } from 'react'
+import { NodePositionService } from '@/lib/services/nodePositionService'
 
 interface BusinessLayerNodeProps {
   data: {
@@ -108,6 +109,21 @@ export default function BusinessLayerNode({ data, selected, id, onEditNode, onDe
       )
     )
   }, [id, setNodes])
+
+  const handleResizeEnd = useCallback(async (event: any, params: any) => {
+    const newSize = { width: params.width, height: params.height }
+    console.log('📏 LAYER RESIZE END:', id, newSize)
+    
+    if (id) {
+      // データベースにサイズを保存
+      const saveResult = await NodePositionService.saveLayerSize(id, newSize)
+      if (!saveResult.success) {
+        console.error('❌ LAYER SIZE SAVE FAILED:', saveResult.error)
+      } else {
+        console.log('✅ LAYER SIZE SAVED SUCCESSFULLY:', id, newSize)
+      }
+    }
+  }, [id])
   
   return (
     <div className="relative" style={{ zIndex: -10 }}>
@@ -118,7 +134,7 @@ export default function BusinessLayerNode({ data, selected, id, onEditNode, onDe
         minWidth={400}
         minHeight={300}
         onResizeStart={() => {}}
-        onResizeEnd={() => {}}
+        onResizeEnd={handleResizeEnd}
         onResize={handleResize}
         handleStyle={{
           width: '12px',

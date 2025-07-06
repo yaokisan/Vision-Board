@@ -10,6 +10,11 @@ export interface NodePosition {
   y: number
 }
 
+export interface NodeSize {
+  width: number
+  height: number
+}
+
 export class NodePositionService {
   /**
    * ノード位置を保存
@@ -55,6 +60,59 @@ export class NodePositionService {
     } catch (error) {
       console.error('Position save exception:', error)
       return { success: false, error: 'Failed to save position' }
+    }
+  }
+
+  /**
+   * レイヤーノードのサイズを保存
+   */
+  static async saveLayerSize(nodeId: string, size: NodeSize): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 一時的なノード（Date.nowで生成されたID）をスキップ
+      if (this.isTemporaryNode(nodeId)) {
+        console.log('Skipping size save for temporary node:', nodeId)
+        return { success: true } // エラーではないのでtrueを返す
+      }
+
+      // ノードIDからテーブルとIDを判定
+      const { table, id } = this.parseNodeId(nodeId)
+      
+      if (!table || !id) {
+        return { success: false, error: 'Invalid node ID format' }
+      }
+
+      // layersテーブルのみサイズ保存をサポート
+      if (table !== 'layers') {
+        console.log('Size save only supported for layers:', nodeId)
+        return { success: true } // エラーではないのでtrueを返す
+      }
+
+      // UUIDの形式をチェック
+      if (!this.isValidUUID(id)) {
+        console.log('Skipping size save for non-UUID ID:', nodeId)
+        return { success: true } // エラーではないのでtrueを返す
+      }
+
+      // layersテーブルのサイズ情報を更新
+      const { error } = await supabase
+        .from('layers')
+        .update({
+          width: size.width,
+          height: size.height,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (error) {
+        console.error('Size save error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log(`Size saved for ${table}:${id}`, size)
+      return { success: true }
+    } catch (error) {
+      console.error('Size save exception:', error)
+      return { success: false, error: 'Failed to save size' }
     }
   }
 

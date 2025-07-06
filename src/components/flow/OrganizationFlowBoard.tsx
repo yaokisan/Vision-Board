@@ -876,6 +876,7 @@ export default function OrganizationFlowBoard({
         nodeData={editingNode}
         members={members}
         currentUser={currentUser}
+        businesses={businesses}
       />
 
       {/* 削除確認ポップアップ */}

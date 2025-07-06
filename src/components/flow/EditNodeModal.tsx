@@ -12,6 +12,7 @@ interface EditNodeModalProps {
   nodeData: { id: string; type: string; data: any } | null
   members: Member[]
   currentUser: Member
+  businesses?: any[] // 事業リストを追加
 }
 
 export default function EditNodeModal({ 
@@ -20,7 +21,8 @@ export default function EditNodeModal({
   onSave, 
   nodeData,
   members,
-  currentUser 
+  currentUser,
+  businesses = []
 }: EditNodeModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -72,11 +74,11 @@ export default function EditNodeModal({
       return (global as any).getBusinesses()
     }
     
-    // 実際の実装では、propsや context、またはサンプルデータから取得
-    return [
-      { id: '1', name: 'Webサービス事業' },
-      { id: '2', name: 'コンサルティング事業' }
-    ]
+    // propsから渡された実際の事業データを使用
+    return businesses.map(business => ({
+      id: business.id,
+      name: business.name
+    }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
