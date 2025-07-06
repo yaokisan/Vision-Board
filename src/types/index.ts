@@ -24,7 +24,7 @@ export interface Layer {
   type: 'business' | 'management';
   created_at: string;
   updated_at: string;
-  displayTab?: string; // タブ別表示制御用（'company' | 事業ID）
+  displayTab?: string | null; // タブ別表示制御用（'company' | 事業ID）
 }
 
 export interface Business {

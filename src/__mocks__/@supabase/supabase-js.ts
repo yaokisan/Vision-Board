@@ -127,7 +127,7 @@ class MockQueryBuilder {
       case 'members':
         membersData = membersData.map(item => {
           const shouldUpdate = this.filters.every(filter => 
-            filter.operator === 'eq' && item[filter.column] === filter.value
+            filter.operator === 'eq' && (item as any)[filter.column] === filter.value
           )
           if (shouldUpdate) {
             const updated = { ...item, ...values, updated_at: new Date().toISOString() }
@@ -147,14 +147,14 @@ class MockQueryBuilder {
       case 'members':
         membersData = membersData.filter(item =>
           !this.filters.every(filter => 
-            filter.operator === 'eq' && item[filter.column] === filter.value
+            filter.operator === 'eq' && (item as any)[filter.column] === filter.value
           )
         )
         break
       case 'member_businesses':
         memberBusinessesData = memberBusinessesData.filter(item =>
           !this.filters.every(filter => 
-            filter.operator === 'eq' && item[filter.column] === filter.value
+            filter.operator === 'eq' && (item as any)[filter.column] === filter.value
           )
         )
         break

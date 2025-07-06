@@ -18,7 +18,10 @@
       "Bash(grep:*)",
       "Bash(npm test:*)",
       "Bash(supabase status:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)"
     ],
     "deny": []
   }

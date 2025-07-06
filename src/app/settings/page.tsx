@@ -1,6 +1,24 @@
+'use client'
+
 import Link from 'next/link'
+import { MemberManagement } from '@/components/settings/MemberManagement'
+import { Member } from '@/types'
+
+// テスト用の現在ユーザー（実際のプロジェクトでは認証システムから取得）
+const getCurrentUser = (): Member => ({
+  id: '550e8400-e29b-41d4-a716-446655440020',
+  company_id: '550e8400-e29b-41d4-a716-446655440000',
+  name: '田中太郎',
+  email: 'tanaka@empire-art.com',
+  permission: 'admin',
+  member_type: 'core',
+  created_at: '2023-01-01T00:00:00Z',
+  updated_at: '2023-01-01T00:00:00Z'
+})
 
 export default function SettingsPage() {
+  const currentUser = getCurrentUser()
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 px-8 py-6">
@@ -25,14 +43,7 @@ export default function SettingsPage() {
       </div>
       
       <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            設定項目
-          </h2>
-          <p className="text-gray-600">
-            設定機能は準備中です。
-          </p>
-        </div>
+        <MemberManagement currentUser={currentUser} />
       </div>
     </main>
   )
