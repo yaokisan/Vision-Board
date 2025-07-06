@@ -179,4 +179,5 @@ const mockSupabaseClient = {
 // createClient関数をモック
 export const createClient = () => mockSupabaseClient
 
-export default { createClient }
+const supabaseJs = { createClient }
+export default supabaseJs

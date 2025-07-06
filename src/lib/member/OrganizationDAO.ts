@@ -402,7 +402,7 @@ export class OrganizationDAO {
       id: row.id,
       company_id: row.company_id,
       name: row.name as ('CEO' | 'CTO' | 'CFO' | 'COO'),
-      member_id: row.member_id,
+      member_id: row.member_id ?? undefined,
       person_name: row.person_name ?? '',
       position_x: row.position_x,
       position_y: row.position_y,
