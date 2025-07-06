@@ -123,33 +123,38 @@ export default function OrganizationFlowBoard({
       timestamp: new Date().toISOString()
     })
     
-    try {
-      const flowData = FlowDataConverter.convertToFlowDataWithContainerFilter(
-        companies,
-        positions,
-        layers,
-        businesses,
-        tasks,
-        executors,
-        viewMode,
-        selectedBusinessId
-      )
-      
-      console.log('🟡 SETTING NODES - Count:', flowData.nodes.length, 'at', new Date().toISOString())
-      setNodes(flowData.nodes)
-      setEdges(flowData.edges)
-      setIsLoading(false)
-      
-      // 初期ズーム率を設定
-      setTimeout(() => {
-        const viewport = getViewport()
-        setCurrentZoom(Math.round(viewport.zoom * 100))
-      }, 100)
-    } catch (error) {
-      console.error('Flow data conversion error:', error)
-      setIsLoading(false)
+    const loadFlowData = async () => {
+      try {
+        const flowData = await FlowDataConverter.convertToFlowDataWithContainerFilter(
+          companies,
+          positions,
+          layers,
+          businesses,
+          tasks,
+          executors,
+          currentUser.company_id,
+          viewMode,
+          selectedBusinessId
+        )
+        
+        console.log('🟡 SETTING NODES - Count:', flowData.nodes.length, 'at', new Date().toISOString())
+        setNodes(flowData.nodes)
+        setEdges(flowData.edges)
+        setIsLoading(false)
+        
+        // 初期ズーム率を設定
+        setTimeout(() => {
+          const viewport = getViewport()
+          setCurrentZoom(Math.round(viewport.zoom * 100))
+        }, 100)
+      } catch (error) {
+        console.error('Flow data conversion error:', error)
+        setIsLoading(false)
+      }
     }
-  }, [companies, positions, layers, businesses, tasks, executors, viewMode, selectedBusinessId, isMounted, setNodes, setEdges, getViewport])
+    
+    loadFlowData()
+  }, [companies, positions, layers, businesses, tasks, executors, viewMode, selectedBusinessId, isMounted, setNodes, setEdges, getViewport, currentUser.company_id])
 
   // ノード位置の復元を別のuseEffectで管理
   useEffect(() => {
@@ -173,25 +178,53 @@ export default function OrganizationFlowBoard({
   }, [nodePositions, isMounted, setNodes])
 
   // エッジ接続ハンドラー
-  const onConnect = useCallback((params: Connection) => {
+  const onConnect = useCallback(async (params: Connection) => {
+    if (!params.source || !params.target) return
     
     // すべての接続線を青色で統一
     const edgeColor = '#4c6ef5' // 青色
     const strokeWidth = 2
+    const edgeStyle = { 
+      stroke: edgeColor, 
+      strokeWidth: strokeWidth,
+      strokeDasharray: '2,4'
+    }
     
+    console.log('🔗 CONNECTING NODES:', params)
+    
+    // データベースに保存
+    const saveResult = await NodeDataService.saveEdge(
+      currentUser.company_id,
+      params.source,
+      params.target,
+      {
+        type: 'default',
+        style: edgeStyle,
+        animated: true,
+        reconnectable: true,
+        deletable: true
+      }
+    )
+    
+    if (!saveResult.success) {
+      console.error('❌ EDGE SAVE FAILED:', saveResult.error)
+      // TODO: ユーザーにエラー表示
+      return
+    }
+    
+    console.log('✅ EDGE SAVED SUCCESSFULLY:', saveResult.edgeId)
+    
+    // データベース保存成功後、React Flow状態を更新
     setEdges((eds) => addEdge({
       ...params,
+      id: saveResult.edgeId!, // データベースのIDを使用
       type: 'default',
-      style: { 
-        stroke: edgeColor, 
-        strokeWidth: strokeWidth,
-        strokeDasharray: '2,4'
-      },
+      style: edgeStyle,
       animated: true,
       reconnectable: true,
       deletable: true
     }, eds))
-  }, [setEdges])
+  }, [setEdges, currentUser.company_id])
 
   // ノード移動保存ハンドラー
   const onNodeDragStop = useCallback(
@@ -571,8 +604,27 @@ export default function OrganizationFlowBoard({
 
 
   // 接続線再接続ハンドラー
-  const onReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+  const onReconnect = useCallback(async (oldEdge: Edge, newConnection: Connection) => {
     console.log('✅ 接続線を再接続:', oldEdge, newConnection)
+    
+    if (!newConnection.source || !newConnection.target) return
+    
+    // データベースで更新
+    const updateResult = await NodeDataService.updateEdge(
+      oldEdge.id,
+      newConnection.source,
+      newConnection.target
+    )
+    
+    if (!updateResult.success) {
+      console.error('❌ EDGE RECONNECT FAILED:', updateResult.error)
+      // TODO: ユーザーにエラー表示
+      return
+    }
+    
+    console.log('✅ EDGE RECONNECTED SUCCESSFULLY:', oldEdge.id)
+    
+    // React Flow状態で更新
     setEdges((els) => reconnectEdge(oldEdge, newConnection, els))
   }, [setEdges])
 
@@ -625,8 +677,21 @@ export default function OrganizationFlowBoard({
   }, [])
 
   // エッジ削除ハンドラー
-  const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
+  const onEdgesDelete = useCallback(async (edgesToDelete: Edge[]) => {
     console.log('🗑️ 接続線を削除:', edgesToDelete)
+    
+    // データベースから削除
+    for (const edge of edgesToDelete) {
+      const deleteResult = await NodeDataService.deleteEdge(edge.id)
+      if (!deleteResult.success) {
+        console.error('❌ EDGE DELETE FAILED:', edge.id, deleteResult.error)
+        // TODO: ユーザーにエラー表示
+      } else {
+        console.log('✅ EDGE DELETED SUCCESSFULLY:', edge.id)
+      }
+    }
+    
+    // React Flow状態から削除
     setEdges((eds) => eds.filter(edge => !edgesToDelete.some(delEdge => delEdge.id === edge.id)))
   }, [setEdges])
 

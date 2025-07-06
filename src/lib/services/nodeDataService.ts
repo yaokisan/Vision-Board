@@ -425,4 +425,90 @@ export class NodeDataService {
     const table = tableMap[prefix] || null
     return { table, id }
   }
+
+  /**
+   * エッジをデータベースに保存
+   */
+  static async saveEdge(companyId: string, sourceNodeId: string, targetNodeId: string, edgeData: any): Promise<{ success: boolean; edgeId?: string; error?: string }> {
+    try {
+      const edgeId = uuidv4()
+      
+      const { error } = await supabase
+        .from('edges')
+        .insert({
+          id: edgeId,
+          company_id: companyId,
+          source_node_id: sourceNodeId,
+          target_node_id: targetNodeId,
+          edge_type: edgeData.type || 'default',
+          style: edgeData.style || { stroke: '#4c6ef5', strokeWidth: 2, strokeDasharray: '2,4' },
+          animated: edgeData.animated !== undefined ? edgeData.animated : true,
+          deletable: edgeData.deletable !== undefined ? edgeData.deletable : true,
+          reconnectable: edgeData.reconnectable !== undefined ? edgeData.reconnectable : true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (error) {
+        console.error('Edge save error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ EDGE SAVED TO DATABASE:', { edgeId, sourceNodeId, targetNodeId })
+      return { success: true, edgeId }
+    } catch (error) {
+      console.error('Edge save exception:', error)
+      return { success: false, error: 'Failed to save edge' }
+    }
+  }
+
+  /**
+   * エッジをデータベースから削除
+   */
+  static async deleteEdge(edgeId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('edges')
+        .delete()
+        .eq('id', edgeId)
+
+      if (error) {
+        console.error('Edge delete error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ EDGE DELETED FROM DATABASE:', edgeId)
+      return { success: true }
+    } catch (error) {
+      console.error('Edge delete exception:', error)
+      return { success: false, error: 'Failed to delete edge' }
+    }
+  }
+
+  /**
+   * エッジを更新（再接続）
+   */
+  static async updateEdge(edgeId: string, newSourceId: string, newTargetId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('edges')
+        .update({
+          source_node_id: newSourceId,
+          target_node_id: newTargetId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', edgeId)
+
+      if (error) {
+        console.error('Edge update error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ EDGE UPDATED IN DATABASE:', { edgeId, newSourceId, newTargetId })
+      return { success: true }
+    } catch (error) {
+      console.error('Edge update exception:', error)
+      return { success: false, error: 'Failed to update edge' }
+    }
+  }
 }

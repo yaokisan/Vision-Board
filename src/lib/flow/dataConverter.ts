@@ -2,6 +2,7 @@
 import { Company, Position, Layer, Business, Task, Executor } from '@/types'
 import { Edge } from '@xyflow/react'
 import { FlowNode, NodeType, EdgeType, OrganizationFlowData } from '@/types/flow'
+import { supabase } from '@/lib/supabase/client'
 
 export class FlowDataConverter {
   // コンテナ表示判定メソッド
@@ -235,33 +236,72 @@ export class FlowDataConverter {
     return nodes
   }
   
-  // エッジ変換
-  static convertToEdges(
+  // エッジ変換（データベースから読み込み + 固定エッジ）
+  static async convertToEdges(
     companies: Company[],
     positions: Position[],
     businesses: Business[],
     tasks: Task[],
-    executors: Executor[]
-  ): Edge[] {
+    executors: Executor[],
+    companyId: string
+  ): Promise<Edge[]> {
     const edges: Edge[] = []
     
+    try {
+      // データベースから保存されたエッジを読み込み
+      const { data: savedEdges, error } = await supabase
+        .from('edges')
+        .select('*')
+        .eq('company_id', companyId)
+
+      if (error) {
+        console.error('Failed to load edges from database:', error)
+      } else if (savedEdges) {
+        // 保存されたエッジをReact Flow形式に変換
+        savedEdges.forEach(edge => {
+          edges.push({
+            id: edge.id,
+            source: edge.source_node_id,
+            target: edge.target_node_id,
+            type: edge.edge_type || 'default',
+            style: edge.style || { 
+              stroke: '#4c6ef5', 
+              strokeWidth: 2,
+              strokeDasharray: '2,4'
+            },
+            animated: edge.animated !== undefined ? edge.animated : true,
+            reconnectable: edge.reconnectable !== undefined ? edge.reconnectable : true,
+            deletable: edge.deletable !== undefined ? edge.deletable : true
+          })
+        })
+        console.log('📊 LOADED EDGES FROM DATABASE:', savedEdges.length)
+      }
+    } catch (error) {
+      console.error('Edge loading exception:', error)
+    }
+
+    // 固定エッジ（後方互換性のため保持）
     // 会社 → 役職（CXO）
     positions.forEach(position => {
       if (position.name !== 'CEO') { // CEOは会社カードに統合済み
-        edges.push({
-          id: `company-position-${position.id}`,
-          source: `company-${position.company_id}`,
-          target: `position-${position.id}`,
-          type: 'default',
-          style: { 
-            stroke: '#4c6ef5', 
-            strokeWidth: 2,
-            strokeDasharray: '2,4'
-          },
-          animated: true,
-          reconnectable: true,
-          deletable: true
-        })
+        const edgeId = `company-position-${position.id}`
+        // 既に保存されたエッジが存在しない場合のみ追加
+        if (!edges.find(edge => edge.id === edgeId)) {
+          edges.push({
+            id: edgeId,
+            source: `company-${position.company_id}`,
+            target: `position-${position.id}`,
+            type: 'default',
+            style: { 
+              stroke: '#4c6ef5', 
+              strokeWidth: 2,
+              strokeDasharray: '2,4'
+            },
+            animated: true,
+            reconnectable: true,
+            deletable: true
+          })
+        }
       }
     })
     
@@ -269,30 +309,57 @@ export class FlowDataConverter {
     const ctoPosition = positions.find(p => p.name.includes('CTO'))
     if (ctoPosition) {
       businesses.forEach(business => {
-        edges.push({
-          id: `position-business-${business.id}`,
-          source: `position-${ctoPosition.id}`,
-          target: `business-${business.id}`,
-          type: 'default',
-          style: { 
-            stroke: '#4c6ef5', 
-            strokeWidth: 2,
-            strokeDasharray: '2,4'
-          },
-          animated: true,
-          reconnectable: true,
-          deletable: true
-        })
+        const edgeId = `position-business-${business.id}`
+        if (!edges.find(edge => edge.id === edgeId)) {
+          edges.push({
+            id: edgeId,
+            source: `position-${ctoPosition.id}`,
+            target: `business-${business.id}`,
+            type: 'default',
+            style: { 
+              stroke: '#4c6ef5', 
+              strokeWidth: 2,
+              strokeDasharray: '2,4'
+            },
+            animated: true,
+            reconnectable: true,
+            deletable: true
+          })
+        }
       })
     }
     
     // 事業 → 業務
     tasks.forEach(task => {
       if (task.business_id) {
+        const edgeId = `business-task-${task.id}`
+        if (!edges.find(edge => edge.id === edgeId)) {
+          edges.push({
+            id: edgeId,
+            source: `business-${task.business_id}`,
+            target: `task-${task.id}`,
+            type: 'default',
+            style: { 
+              stroke: '#4c6ef5', 
+              strokeWidth: 2,
+              strokeDasharray: '2,4'
+            },
+            animated: true,
+            reconnectable: true,
+            deletable: true
+          })
+        }
+      }
+    })
+    
+    // 業務 → 実行者
+    executors.forEach(executor => {
+      const edgeId = `task-executor-${executor.id}`
+      if (!edges.find(edge => edge.id === edgeId)) {
         edges.push({
-          id: `business-task-${task.id}`,
-          source: `business-${task.business_id}`,
-          target: `task-${task.id}`,
+          id: edgeId,
+          source: `task-${executor.task_id}`,
+          target: `executor-${executor.id}`,
           type: 'default',
           style: { 
             stroke: '#4c6ef5', 
@@ -300,45 +367,28 @@ export class FlowDataConverter {
             strokeDasharray: '2,4'
           },
           animated: true,
-          reconnectable: true,
-          deletable: true
+          reconnectable: true
         })
       }
-    })
-    
-    // 業務 → 実行者
-    executors.forEach(executor => {
-      edges.push({
-        id: `task-executor-${executor.id}`,
-        source: `task-${executor.task_id}`,
-        target: `executor-${executor.id}`,
-        type: 'default',
-        style: { 
-          stroke: '#4c6ef5', 
-          strokeWidth: 2,
-          strokeDasharray: '2,4'
-        },
-        animated: true,
-        reconnectable: true
-      })
     })
     
     return edges
   }
   
   // 統合変換メソッド
-  static convertToFlowData(
+  static async convertToFlowData(
     companies: Company[],
     positions: Position[],
     layers: Layer[],
     businesses: Business[],
     tasks: Task[],
     executors: Executor[],
+    companyId: string,
     viewMode: 'company' | 'business' = 'company',
     selectedBusinessId?: string | null
-  ): OrganizationFlowData {
+  ): Promise<OrganizationFlowData> {
     let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors)
-    let edges = this.convertToEdges(companies, positions, businesses, tasks, executors)
+    let edges = await this.convertToEdges(companies, positions, businesses, tasks, executors, companyId)
     
     // 事業ビューの場合、会社とCXO関連ノードを除外
     if (viewMode === 'business') {
@@ -390,18 +440,19 @@ export class FlowDataConverter {
   }
 
   // コンテナフィルタリング付きの変換メソッド
-  static convertToFlowDataWithContainerFilter(
+  static async convertToFlowDataWithContainerFilter(
     companies: Company[],
     positions: Position[],
     layers: Layer[],
     businesses: Business[],
     tasks: Task[],
     executors: Executor[],
+    companyId: string,
     viewMode: 'company' | 'business' = 'company',
     selectedBusinessId?: string | null
-  ): OrganizationFlowData {
+  ): Promise<OrganizationFlowData> {
     let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors)
-    let edges = this.convertToEdges(companies, positions, businesses, tasks, executors)
+    let edges = await this.convertToEdges(companies, positions, businesses, tasks, executors, companyId)
     
     // 事業ビューの場合、会社とCXO関連ノードを除外
     if (viewMode === 'business') {
