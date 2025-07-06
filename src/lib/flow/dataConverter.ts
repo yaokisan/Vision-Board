@@ -157,7 +157,7 @@ export class FlowDataConverter {
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
           containerSize: finalSize,
-          displayTab: layer.displayTab || 'company' // レイヤーのdisplayTabを使用
+          displayTab: (layer as any).display_tab || 'company' // データベースのdisplay_tabカラムを使用
         },
         draggable: true,
         selectable: true
@@ -421,19 +421,36 @@ export class FlowDataConverter {
         )
         const selectedBusinessExecutorIds = selectedBusinessExecutors.map(executor => executor.id)
         
-        // 選択された事業に関連するノードのみをフィルタリング
+        // エッジでつながっているノードも含めて表示するノードを決定
+        const connectedNodeIds = new Set<string>()
+        
+        // 基本の事業関連ノードを追加
+        connectedNodeIds.add(`business-${selectedBusinessId}`)
+        selectedBusinessTaskIds.forEach(taskId => connectedNodeIds.add(`task-${taskId}`))
+        selectedBusinessExecutorIds.forEach(executorId => connectedNodeIds.add(`executor-${executorId}`))
+        
+        // エッジでつながっているノードを追加
+        edges.forEach(edge => {
+          const sourceNodeId = edge.source
+          const targetNodeId = edge.target
+          
+          // 選択された事業のノードから接続されているノードを追加
+          if (connectedNodeIds.has(sourceNodeId)) {
+            connectedNodeIds.add(targetNodeId)
+          }
+          // 選択された事業のノードに接続されているノードを追加  
+          if (connectedNodeIds.has(targetNodeId)) {
+            connectedNodeIds.add(sourceNodeId)
+          }
+        })
+        
+        // レイヤーノードとつながっているノードを含めてフィルタリング
         nodes = nodes.filter(node => {
           // 事業レイヤーは常に表示
           if (node.type === 'business_layer') return true
           
-          // 選択された事業のノード
-          if (node.id === `business-${selectedBusinessId}`) return true
-          
-          // 選択された事業のタスクノード
-          if (node.type === 'task' && selectedBusinessTaskIds.includes(node.data.entity.id)) return true
-          
-          // 選択された事業のエクゼキューターノード
-          if (node.type === 'executor' && selectedBusinessExecutorIds.includes(node.data.entity.id)) return true
+          // つながっているノードを表示
+          if (connectedNodeIds.has(node.id)) return true
           
           return false
         })
@@ -485,7 +502,30 @@ export class FlowDataConverter {
         )
         const selectedBusinessExecutorIds = selectedBusinessExecutors.map(executor => executor.id)
         
-        // 選択された事業に関連するノードのみをフィルタリング
+        // エッジでつながっているノードも含めて表示するノードを決定
+        const connectedNodeIds = new Set<string>()
+        
+        // 基本の事業関連ノードを追加
+        connectedNodeIds.add(`business-${selectedBusinessId}`)
+        selectedBusinessTaskIds.forEach(taskId => connectedNodeIds.add(`task-${taskId}`))
+        selectedBusinessExecutorIds.forEach(executorId => connectedNodeIds.add(`executor-${executorId}`))
+        
+        // エッジでつながっているノードを追加
+        edges.forEach(edge => {
+          const sourceNodeId = edge.source
+          const targetNodeId = edge.target
+          
+          // 選択された事業のノードから接続されているノードを追加
+          if (connectedNodeIds.has(sourceNodeId)) {
+            connectedNodeIds.add(targetNodeId)
+          }
+          // 選択された事業のノードに接続されているノードを追加  
+          if (connectedNodeIds.has(targetNodeId)) {
+            connectedNodeIds.add(sourceNodeId)
+          }
+        })
+        
+        // レイヤーノードとつながっているノードを含めてフィルタリング
         nodes = nodes.filter(node => {
           // 事業レイヤーはdisplayTabに基づいてフィルタリング
           if (node.type === 'business_layer') {
@@ -493,14 +533,8 @@ export class FlowDataConverter {
             return this.shouldShowContainer({ displayTab }, selectedBusinessId)
           }
           
-          // 選択された事業のノード
-          if (node.id === `business-${selectedBusinessId}`) return true
-          
-          // 選択された事業のタスクノード
-          if (node.type === 'task' && selectedBusinessTaskIds.includes(node.data.entity.id)) return true
-          
-          // 選択された事業のエクゼキューターノード
-          if (node.type === 'executor' && selectedBusinessExecutorIds.includes(node.data.entity.id)) return true
+          // つながっているノードを表示
+          if (connectedNodeIds.has(node.id)) return true
           
           return false
         })

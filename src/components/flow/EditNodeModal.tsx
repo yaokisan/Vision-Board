@@ -56,14 +56,14 @@ export default function EditNodeModal({
         type: data.type || entity.type || '',
         color: data.color || entity.color || '',
         displayTab: (() => {
-          const tabValue = data.displayTab || entity.displayTab || 'company'
-          // 有効な値かチェック（会社または既知の事業ID）
-          const validValues = ['company', '1', '2'] // 既知の事業IDリスト
+          const tabValue = data.displayTab || entity.display_tab || 'company'
+          // 有効な値かチェック（会社または実際の事業ID）
+          const validValues = ['company', ...businesses.map(b => b.id)]
           return validValues.includes(tabValue) ? tabValue : 'company'
         })()
       })
     }
-  }, [nodeData])
+  }, [nodeData, businesses])
 
   if (!isOpen || !nodeData) return null
 
