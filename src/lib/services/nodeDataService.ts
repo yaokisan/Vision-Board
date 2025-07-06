@@ -313,6 +313,7 @@ export class NodeDataService {
               name: updatedData.name,
               person_name: updatedData.person_name,
               member_id: updatedData.member_id,
+              attribute: updatedData.attribute,
               updated_at: timestamp
             })
             .eq('id', id)
@@ -327,6 +328,7 @@ export class NodeDataService {
               responsible_person: updatedData.responsible_person,
               responsible_person_id: updatedData.responsible_person_id,
               category: updatedData.category,
+              attribute: updatedData.attribute,
               updated_at: timestamp
             })
             .eq('id', id)
@@ -341,6 +343,7 @@ export class NodeDataService {
               responsible_person: updatedData.responsible_person,
               responsible_person_id: updatedData.responsible_person_id,
               group_name: updatedData.group_name,
+              attribute: updatedData.attribute,
               updated_at: timestamp
             })
             .eq('id', id)
@@ -352,6 +355,7 @@ export class NodeDataService {
             .update({
               name: updatedData.name,
               role: updatedData.role,
+              attribute: updatedData.attribute,
               updated_at: timestamp
             })
             .eq('id', id)
@@ -367,7 +371,7 @@ export class NodeDataService {
           if (updatedData.type !== undefined) layerUpdateData.type = updatedData.type
           if (updatedData.description !== undefined) layerUpdateData.description = updatedData.description
           if (updatedData.color !== undefined) layerUpdateData.color = updatedData.color
-          if (updatedData.displayTab !== undefined) layerUpdateData.display_tab = updatedData.displayTab
+          if (updatedData.attribute !== undefined) layerUpdateData.attribute = updatedData.attribute
           if (updatedData.containerSize?.width !== undefined) layerUpdateData.width = updatedData.containerSize.width
           if (updatedData.containerSize?.height !== undefined) layerUpdateData.height = updatedData.containerSize.height
           
@@ -382,6 +386,7 @@ export class NodeDataService {
             .from('companies')
             .update({
               name: updatedData.name,
+              attribute: updatedData.attribute,
               updated_at: timestamp
             })
             .eq('id', id)

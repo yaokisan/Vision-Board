@@ -447,7 +447,7 @@ export default function OrganizationFlowBoard({
                   type: updatedData.type,
                   description: updatedData.description,
                   color: updatedData.color,
-                  displayTab: updatedData.displayTab
+                  attribute: updatedData.attribute
                 }
               }
             }

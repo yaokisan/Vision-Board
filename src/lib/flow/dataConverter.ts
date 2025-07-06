@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 export class FlowDataConverter {
   // コンテナ表示判定メソッド
   static shouldShowContainer(
-    container: { displayTab?: string },
+    container: { attribute?: string },
     currentTab: 'company' | string
   ): boolean {
     // 会社タブでは全てのコンテナを表示
@@ -16,8 +16,8 @@ export class FlowDataConverter {
     }
     
     // 事業タブでは、該当事業設定のコンテナのみ表示
-    const containerDisplayTab = container.displayTab || 'company'
-    return containerDisplayTab === currentTab
+    const containerAttribute = container.attribute || 'company'
+    return containerAttribute === currentTab
   }
   // ノード変換
   static convertToNodes(
@@ -63,7 +63,8 @@ export class FlowDataConverter {
           entity: company,
           label: company.name,
           size: { width: 320, height: 120 },
-          ceoName: ceo?.person_name
+          ceoName: ceo?.person_name,
+          attribute: (company as any).attribute || 'company' // データベースのattributeカラムを使用
         },
         draggable: true,
         selectable: true
@@ -80,7 +81,7 @@ export class FlowDataConverter {
           entity: { id: 'cxo-layer', name: 'CXOレイヤー' },
           label: 'CXOレイヤー',
           containerSize: { width: 800, height: 200 },
-          displayTab: 'company' // デフォルトは company タブで表示
+          attribute: 'company' // デフォルトは company 属性で表示
         },
         draggable: true,
         selectable: true
@@ -104,7 +105,8 @@ export class FlowDataConverter {
           data: {
             entity: position,
             label: `${position.name}: ${position.person_name}`,
-            size: { width: 224, height: 120 }
+            size: { width: 224, height: 120 },
+            attribute: (position as any).attribute || 'company' // データベースのattributeカラムを使用
           },
           parentNode: 'cxo-layer',
           extent: 'parent' as const,
@@ -157,7 +159,7 @@ export class FlowDataConverter {
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
           containerSize: finalSize,
-          displayTab: (layer as any).display_tab || 'company', // データベースのdisplay_tabカラムを使用
+          attribute: (layer as any).attribute || 'company', // データベースのattributeカラムを使用
           color: (layer as any).color || 'gray', // データベースのcolorカラムを使用
           description: (layer as any).description || '' // データベースのdescriptionカラムを使用
         },
@@ -182,7 +184,8 @@ export class FlowDataConverter {
         data: {
           entity: business,
           label: business.name,
-          size: { width: 256, height: 160 }
+          size: { width: 256, height: 160 },
+          attribute: (business as any).attribute || 'company' // データベースのattributeカラムを使用
         },
         parentNode: `layer-${business.layer_id}`,
         extent: 'parent' as const,
@@ -209,7 +212,8 @@ export class FlowDataConverter {
         data: {
           entity: task,
           label: task.name,
-          size: { width: 224, height: 100 }
+          size: { width: 224, height: 100 },
+          attribute: (task as any).attribute || 'company' // データベースのattributeカラムを使用
         },
         parentNode: !task.business_id ? `layer-${task.layer_id}` : undefined,
         extent: !task.business_id ? 'parent' as const : undefined,
@@ -237,7 +241,8 @@ export class FlowDataConverter {
         data: {
           entity: executor,
           label: executor.name,
-          size: { width: 192, height: 80 }
+          size: { width: 192, height: 80 },
+          attribute: (executor as any).attribute || 'company' // データベースのattributeカラムを使用
         },
         parentNode: layerId ? `layer-${layerId}` : undefined,
         extent: layerId ? 'parent' as const : undefined,
@@ -529,10 +534,10 @@ export class FlowDataConverter {
         
         // レイヤーノードとつながっているノードを含めてフィルタリング
         nodes = nodes.filter(node => {
-          // 事業レイヤーはdisplayTabに基づいてフィルタリング
+          // 事業レイヤーはattributeに基づいてフィルタリング
           if (node.type === 'business_layer') {
-            const displayTab = node.data.displayTab || 'company'
-            return this.shouldShowContainer({ displayTab }, selectedBusinessId)
+            const attribute = node.data.attribute || 'company'
+            return this.shouldShowContainer({ attribute }, selectedBusinessId)
           }
           
           // つながっているノードを表示
@@ -550,7 +555,7 @@ export class FlowDataConverter {
       })
     } else {
       // 会社ビューの場合はコンテナフィルタリングのみ適用
-      // displayTabが設定されていないレイヤーは会社タブで表示
+      // attributeが設定されていないレイヤーは会社属性で表示
       // （既存の動作を維持）
     }
     

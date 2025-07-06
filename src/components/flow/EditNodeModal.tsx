@@ -36,7 +36,7 @@ export default function EditNodeModal({
     description: '',
     type: '',
     color: '',
-    displayTab: 'company'
+    attribute: 'company'
   })
 
   useEffect(() => {
@@ -55,11 +55,11 @@ export default function EditNodeModal({
         description: data.description || entity.description || '',
         type: data.type || entity.type || '',
         color: data.color || entity.color || '',
-        displayTab: (() => {
-          const tabValue = data.displayTab || entity.display_tab || 'company'
+        attribute: (() => {
+          const attributeValue = data.attribute || entity.attribute || 'company'
           // 有効な値かチェック（会社または実際の事業ID）
           const validValues = ['company', ...businesses.map(b => b.id)]
-          return validValues.includes(tabValue) ? tabValue : 'company'
+          return validValues.includes(attributeValue) ? attributeValue : 'company'
         })()
       })
     }
@@ -293,15 +293,15 @@ export default function EditNodeModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">表示タブ</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
               <div className="space-y-2">
                 <label className="flex items-center">
                   <input
                     type="radio"
-                    name="displayTab"
+                    name="attribute"
                     value="company"
-                    checked={formData.displayTab === 'company'}
-                    onChange={(e) => setFormData({ ...formData, displayTab: e.target.value })}
+                    checked={formData.attribute === 'company'}
+                    onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
                     className="mr-2"
                   />
                   <span className="text-sm text-gray-700">会社</span>
@@ -310,10 +310,10 @@ export default function EditNodeModal({
                   <label key={business.id} className="flex items-center">
                     <input
                       type="radio"
-                      name="displayTab"
+                      name="attribute"
                       value={business.id}
-                      checked={formData.displayTab === business.id}
-                      onChange={(e) => setFormData({ ...formData, displayTab: e.target.value })}
+                      checked={formData.attribute === business.id}
+                      onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
                       className="mr-2"
                     />
                     <span className="text-sm text-gray-700">{business.name}</span>
@@ -321,7 +321,7 @@ export default function EditNodeModal({
                 ))}
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                このコンテナを表示するタブを選択してください
+                このノードの所属属性を選択してください
               </p>
             </div>
             <div>
