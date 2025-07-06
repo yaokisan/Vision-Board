@@ -499,7 +499,7 @@ export default function OrganizationFlowBoard({
         label: getDefaultNodeLabel(nodeType),
         ...(nodeType === NodeType.CXO && { ceoName: getDefaultNodeLabel(nodeType) }),
         ...(nodeType === NodeType.BUSINESS_LAYER && { 
-          type: defaultData.type,
+          type: defaultData.type as "business" | "management",
           containerSize: { width: 300, height: 200 },
           size: { width: 300, height: 200 }
         })
