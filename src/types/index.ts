@@ -8,7 +8,7 @@ export interface Company {
 export interface Position {
   id: string;
   company_id: string;
-  name: 'CEO' | 'COO';
+  name: 'CEO' | 'COO' | 'CTO' | 'CFO';
   person_name: string;
   created_at: string;
   updated_at: string;

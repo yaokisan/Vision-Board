@@ -56,6 +56,9 @@ interface OrganizationFlowBoardProps {
   executors: any[]
   viewMode?: 'company' | 'business'
   selectedBusinessId?: string | null
+  // タブ別ノード位置保持機能
+  nodePositions?: Record<string, { x: number; y: number }>
+  onNodePositionUpdate?: (nodeId: string, position: { x: number; y: number }) => void
 }
 
 export default function OrganizationFlowBoard({
@@ -66,7 +69,9 @@ export default function OrganizationFlowBoard({
   tasks,
   executors,
   viewMode = 'company' as 'company' | 'business',
-  selectedBusinessId
+  selectedBusinessId,
+  nodePositions = {},
+  onNodePositionUpdate
 }: OrganizationFlowBoardProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
@@ -111,10 +116,23 @@ export default function OrganizationFlowBoard({
         businesses,
         tasks,
         executors,
-        viewMode
+        viewMode,
+        selectedBusinessId
       )
       
-      setNodes(flowData.nodes)
+      // 保存されたノード位置を復元
+      const nodesWithSavedPositions = flowData.nodes.map(node => {
+        const savedPosition = nodePositions[node.id]
+        if (savedPosition) {
+          return {
+            ...node,
+            position: savedPosition
+          }
+        }
+        return node
+      })
+      
+      setNodes(nodesWithSavedPositions)
       setEdges(flowData.edges)
       setIsLoading(false)
       // 初期ズーム率を設定
@@ -128,7 +146,7 @@ export default function OrganizationFlowBoard({
       console.error('Flow data conversion error:', error)
       setIsLoading(false)
     }
-  }, [companies, positions, layers, businesses, tasks, executors, viewMode, setNodes, setEdges, getViewport, isMounted])
+  }, [companies, positions, layers, businesses, tasks, executors, viewMode, selectedBusinessId, nodePositions, setNodes, setEdges, getViewport, isMounted])
 
   // エッジ接続ハンドラー
   const onConnect = useCallback((params: Connection) => {
@@ -155,9 +173,12 @@ export default function OrganizationFlowBoard({
   const onNodeDragStop = useCallback(
     (event: React.MouseEvent, node: Node) => {
       console.log('Node moved:', node.id, node.position)
-      // TODO: データベースへの位置保存
+      // タブ別ノード位置保持機能
+      if (onNodePositionUpdate) {
+        onNodePositionUpdate(node.id, node.position)
+      }
     },
-    []
+    [onNodePositionUpdate]
   )
 
   // ノード追加ハンドラー

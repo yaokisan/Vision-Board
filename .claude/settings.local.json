@@ -15,7 +15,8 @@
       "Bash(npm run lint)",
       "Bash(rg:*)",
       "Bash(npx next lint:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

@@ -176,7 +176,28 @@ export default function FlowDashboard() {
   const [viewMode, setViewMode] = useState<'company' | 'business'>('company')
   const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null)
   
-
+  // タブ別ノード位置保持機能
+  const [nodePositionsByTab, setNodePositionsByTab] = useState<Record<string, Record<string, { x: number; y: number }>>>({
+    company: {},
+    ...Object.fromEntries(sampleData.businesses.map(business => [business.id, {}]))
+  })
+  
+  // 現在のタブキーを取得
+  const getCurrentTabKey = () => {
+    return viewMode === 'company' ? 'company' : selectedBusiness || 'company'
+  }
+  
+  // ノード位置更新ハンドラー
+  const handleNodePositionUpdate = (nodeId: string, position: { x: number; y: number }) => {
+    const currentTabKey = getCurrentTabKey()
+    setNodePositionsByTab(prev => ({
+      ...prev,
+      [currentTabKey]: {
+        ...prev[currentTabKey],
+        [nodeId]: position
+      }
+    }))
+  }
 
   return (
     <ReactFlowProvider>
@@ -250,6 +271,8 @@ export default function FlowDashboard() {
           executors={sampleData.executors}
           viewMode={viewMode}
           selectedBusinessId={selectedBusiness}
+          nodePositions={nodePositionsByTab[getCurrentTabKey()]}
+          onNodePositionUpdate={handleNodePositionUpdate}
         />
       </main>
     </ReactFlowProvider>
