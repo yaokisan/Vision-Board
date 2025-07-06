@@ -38,6 +38,19 @@ export class MockDataFactory {
     }
   }
 
+  static createLayerWithDisplayTab(overrides: Partial<Layer & { displayTab: string }> = {}): Layer & { displayTab: string } {
+    return {
+      id: 'test-layer-1',
+      company_id: 'test-company-1',
+      name: '事業',
+      type: 'business',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      displayTab: 'company',
+      ...overrides
+    }
+  }
+
   static createBusiness(overrides: Partial<Business> = {}): Business {
     return {
       id: 'test-business-1',
@@ -178,6 +191,71 @@ export class TestAssertions {
   static expectNodeTypeCount(nodes: Array<{ type: string }>, type: string, expectedCount: number) {
     const nodeCount = nodes.filter(node => node.type === type).length
     expect(nodeCount).toBe(expectedCount)
+  }
+}
+
+/**
+ * コンテナ表示制御のテストヘルパー
+ */
+export class ContainerDisplayTestHelper {
+  /**
+   * displayTab設定付きコンテナデータセットを作成
+   */
+  static createContainerDataSet() {
+    return {
+      companyContainer: MockDataFactory.createLayerWithDisplayTab({
+        id: 'layer-company',
+        name: '会社レイヤー',
+        displayTab: 'company'
+      }),
+      webBusinessContainer: MockDataFactory.createLayerWithDisplayTab({
+        id: 'layer-web',
+        name: 'Webサービス事業レイヤー',
+        displayTab: '1'
+      }),
+      consultingContainer: MockDataFactory.createLayerWithDisplayTab({
+        id: 'layer-consulting',
+        name: 'コンサルティング事業レイヤー',
+        displayTab: '2'
+      })
+    }
+  }
+
+  /**
+   * タブ別期待表示コンテナを取得
+   */
+  static getExpectedContainersForTab(tabId: string) {
+    const containers = this.createContainerDataSet()
+    
+    if (tabId === 'company') {
+      return [containers.companyContainer, containers.webBusinessContainer, containers.consultingContainer]
+    }
+    
+    if (tabId === '1') {
+      return [containers.webBusinessContainer]
+    }
+    
+    if (tabId === '2') {
+      return [containers.consultingContainer]
+    }
+    
+    return []
+  }
+
+  /**
+   * コンテナ表示状態をアサート
+   */
+  static expectContainerVisibility(
+    containers: Array<{ id: string; displayTab: string }>,
+    currentTab: string,
+    shouldShowContainer: (container: any, tab: string) => boolean
+  ) {
+    containers.forEach(container => {
+      const isVisible = shouldShowContainer(container, currentTab)
+      const expectedVisibility = currentTab === 'company' || container.displayTab === currentTab
+      
+      expect(isVisible).toBe(expectedVisibility)
+    })
   }
 }
 

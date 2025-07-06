@@ -109,7 +109,7 @@ export default function OrganizationFlowBoard({
   // データ変換とReact Flow初期化
   useEffect(() => {
     try {
-      const flowData = FlowDataConverter.convertToFlowData(
+      const flowData = FlowDataConverter.convertToFlowDataWithContainerFilter(
         companies,
         positions,
         layers,

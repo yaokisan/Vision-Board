@@ -4,6 +4,20 @@ import { Edge } from '@xyflow/react'
 import { FlowNode, NodeType, EdgeType, OrganizationFlowData } from '@/types/flow'
 
 export class FlowDataConverter {
+  // コンテナ表示判定メソッド
+  static shouldShowContainer(
+    container: { displayTab?: string },
+    currentTab: 'company' | string
+  ): boolean {
+    // 会社タブでは全てのコンテナを表示
+    if (currentTab === 'company') {
+      return true
+    }
+    
+    // 事業タブでは、該当事業設定のコンテナのみ表示
+    const containerDisplayTab = container.displayTab || 'company'
+    return containerDisplayTab === currentTab
+  }
   // ノード変換
   static convertToNodes(
     companies: Company[],
@@ -82,7 +96,7 @@ export class FlowDataConverter {
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
           containerSize: { width: 500, height: 600 },
-          displayTab: 'company' // デフォルトは company タブで表示
+          displayTab: layer.displayTab || 'company' // レイヤーのdisplayTabを使用
         },
         draggable: true,
         selectable: true
@@ -309,6 +323,76 @@ export class FlowDataConverter {
         const targetNode = nodes.find(n => n.id === edge.target)
         return sourceNode && targetNode
       })
+    }
+    
+    return { nodes, edges }
+  }
+
+  // コンテナフィルタリング付きの変換メソッド
+  static convertToFlowDataWithContainerFilter(
+    companies: Company[],
+    positions: Position[],
+    layers: Layer[],
+    businesses: Business[],
+    tasks: Task[],
+    executors: Executor[],
+    viewMode: 'company' | 'business' = 'company',
+    selectedBusinessId?: string | null
+  ): OrganizationFlowData {
+    let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors)
+    let edges = this.convertToEdges(companies, positions, businesses, tasks, executors)
+    
+    // 事業ビューの場合、会社とCXO関連ノードを除外
+    if (viewMode === 'business') {
+      nodes = nodes.filter(node => 
+        node.type !== 'company' && 
+        node.type !== 'cxo' && 
+        node.type !== 'cxo_layer'
+      )
+      
+      // 特定の事業が選択されている場合、その事業関連のノードのみ表示
+      if (selectedBusinessId) {
+        // 選択された事業のタスクIDを取得
+        const selectedBusinessTasks = tasks.filter(task => task.business_id === selectedBusinessId)
+        const selectedBusinessTaskIds = selectedBusinessTasks.map(task => task.id)
+        
+        // 選択された事業のエクゼキューターIDを取得
+        const selectedBusinessExecutors = executors.filter(executor => 
+          selectedBusinessTaskIds.includes(executor.task_id)
+        )
+        const selectedBusinessExecutorIds = selectedBusinessExecutors.map(executor => executor.id)
+        
+        // 選択された事業に関連するノードのみをフィルタリング
+        nodes = nodes.filter(node => {
+          // 事業レイヤーはdisplayTabに基づいてフィルタリング
+          if (node.type === 'business_layer') {
+            const displayTab = node.data.displayTab || 'company'
+            return this.shouldShowContainer({ displayTab }, selectedBusinessId)
+          }
+          
+          // 選択された事業のノード
+          if (node.id === `business-${selectedBusinessId}`) return true
+          
+          // 選択された事業のタスクノード
+          if (node.type === 'task' && selectedBusinessTaskIds.includes(node.data.entity.id)) return true
+          
+          // 選択された事業のエクゼキューターノード
+          if (node.type === 'executor' && selectedBusinessExecutorIds.includes(node.data.entity.id)) return true
+          
+          return false
+        })
+      }
+      
+      // 会社・CXO関連のエッジも除外
+      edges = edges.filter(edge => {
+        const sourceNode = nodes.find(n => n.id === edge.source)
+        const targetNode = nodes.find(n => n.id === edge.target)
+        return sourceNode && targetNode
+      })
+    } else {
+      // 会社ビューの場合はコンテナフィルタリングのみ適用
+      // displayTabが設定されていないレイヤーは会社タブで表示
+      // （既存の動作を維持）
     }
     
     return { nodes, edges }

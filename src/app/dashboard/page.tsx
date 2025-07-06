@@ -48,7 +48,26 @@ const sampleData = {
       name: '事業',
       type: 'business',
       created_at: new Date('2024-01-01'),
-      updated_at: new Date('2024-01-01')
+      updated_at: new Date('2024-01-01'),
+      displayTab: 'company' // 会社タブで表示
+    },
+    {
+      id: '2',
+      company_id: '1',
+      name: 'Webサービス事業',
+      type: 'business',
+      created_at: new Date('2024-01-01'),
+      updated_at: new Date('2024-01-01'),
+      displayTab: '1' // Webサービス事業タブで表示
+    },
+    {
+      id: '3',
+      company_id: '1',
+      name: 'コンサルティング事業',
+      type: 'business',
+      created_at: new Date('2024-01-01'),
+      updated_at: new Date('2024-01-01'),
+      displayTab: '2' // コンサルティング事業タブで表示
     }
   ],
   businesses: [
