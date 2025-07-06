@@ -377,7 +377,21 @@ export default function OrganizationFlowBoard({
 
   // ノード編集保存ハンドラー
   const handleSaveEditNode = useCallback(
-    (nodeId: string, updatedData: any) => {
+    async (nodeId: string, updatedData: any) => {
+      console.log('💾 SAVING NODE EDIT DATA:', { nodeId, updatedData })
+      
+      // データベースに保存
+      const saveResult = await NodeDataService.updateNode(nodeId, updatedData)
+      
+      if (!saveResult.success) {
+        console.error('❌ NODE UPDATE FAILED:', saveResult.error)
+        // TODO: ユーザーにエラー表示
+        return
+      }
+      
+      console.log('✅ NODE UPDATED SUCCESSFULLY')
+      
+      // データベース保存成功後、React Flow状態を更新
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id === nodeId) {

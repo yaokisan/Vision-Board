@@ -287,4 +287,142 @@ export class NodeDataService {
       return { success: false, error: 'Failed to create default layer' }
     }
   }
+
+  /**
+   * 既存ノードをデータベースで更新
+   */
+  static async updateNode(nodeId: string, updatedData: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      // ノードIDからテーブルとIDを判定
+      const { table, id } = this.parseNodeId(nodeId)
+      
+      if (!table || !id) {
+        return { success: false, error: 'Invalid node ID format' }
+      }
+
+      console.log('💾 UPDATING NODE:', { table, id, updatedData })
+
+      let updateQuery
+      const timestamp = new Date().toISOString()
+
+      switch (table) {
+        case 'positions':
+          updateQuery = supabase
+            .from('positions')
+            .update({
+              name: updatedData.name,
+              person_name: updatedData.person_name,
+              member_id: updatedData.member_id,
+              updated_at: timestamp
+            })
+            .eq('id', id)
+          break
+
+        case 'businesses':
+          updateQuery = supabase
+            .from('businesses')
+            .update({
+              name: updatedData.name,
+              goal: updatedData.goal,
+              responsible_person: updatedData.responsible_person,
+              responsible_person_id: updatedData.responsible_person_id,
+              category: updatedData.category,
+              updated_at: timestamp
+            })
+            .eq('id', id)
+          break
+
+        case 'tasks':
+          updateQuery = supabase
+            .from('tasks')
+            .update({
+              name: updatedData.name,
+              goal: updatedData.goal,
+              responsible_person: updatedData.responsible_person,
+              responsible_person_id: updatedData.responsible_person_id,
+              group_name: updatedData.group_name,
+              updated_at: timestamp
+            })
+            .eq('id', id)
+          break
+
+        case 'executors':
+          updateQuery = supabase
+            .from('executors')
+            .update({
+              name: updatedData.name,
+              role: updatedData.role,
+              updated_at: timestamp
+            })
+            .eq('id', id)
+          break
+
+        case 'layers':
+          updateQuery = supabase
+            .from('layers')
+            .update({
+              name: updatedData.name,
+              type: updatedData.type,
+              description: updatedData.description,
+              color: updatedData.color,
+              display_tab: updatedData.displayTab,
+              updated_at: timestamp
+            })
+            .eq('id', id)
+          break
+
+        case 'companies':
+          updateQuery = supabase
+            .from('companies')
+            .update({
+              name: updatedData.name,
+              updated_at: timestamp
+            })
+            .eq('id', id)
+          break
+
+        default:
+          return { success: false, error: `Unsupported table: ${table}` }
+      }
+
+      const { error } = await updateQuery
+
+      if (error) {
+        console.error('Node update error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ NODE UPDATED IN DATABASE:', { table, id })
+      return { success: true }
+    } catch (error) {
+      console.error('Node update exception:', error)
+      return { success: false, error: 'Failed to update node' }
+    }
+  }
+
+  /**
+   * ノードIDをパースしてテーブル名とIDを取得
+   */
+  private static parseNodeId(nodeId: string): { table: string | null; id: string | null } {
+    const parts = nodeId.split('-')
+    
+    if (parts.length < 2) {
+      return { table: null, id: null }
+    }
+
+    const prefix = parts[0]
+    const id = parts.slice(1).join('-') // UUIDに'-'が含まれる場合に対応
+
+    const tableMap: Record<string, string> = {
+      'company': 'companies',
+      'position': 'positions',
+      'layer': 'layers',
+      'business': 'businesses', 
+      'task': 'tasks',
+      'executor': 'executors'
+    }
+
+    const table = tableMap[prefix] || null
+    return { table, id }
+  }
 }
