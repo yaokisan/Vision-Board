@@ -2,269 +2,55 @@
 
 import OrganizationFlowBoard from '@/components/flow/OrganizationFlowBoard'
 import { ReactFlowProvider } from '@xyflow/react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
-
-// サンプルデータ（実際のプロジェクトではSupabaseから取得）
-const sampleData = {
-  // 現在ユーザー
-  currentUser: {
-    id: '550e8400-e29b-41d4-a716-446655440020',
-    company_id: '550e8400-e29b-41d4-a716-446655440000',
-    name: '田中太郎',
-    email: 'tanaka@empire-art.com',
-    permission: 'admin',
-    member_type: 'core',
-    created_at: '2023-01-01T00:00:00Z',
-    updated_at: '2023-01-01T00:00:00Z'
-  },
-  // メンバーリスト
-  members: [
-    {
-      id: '550e8400-e29b-41d4-a716-446655440020',
-      company_id: '550e8400-e29b-41d4-a716-446655440000',
-      name: '田中太郎',
-      email: 'tanaka@empire-art.com',
-      permission: 'admin',
-      member_type: 'core',
-      created_at: '2023-01-01T00:00:00Z',
-      updated_at: '2023-01-01T00:00:00Z'
-    },
-    {
-      id: '550e8400-e29b-41d4-a716-446655440021',
-      company_id: '550e8400-e29b-41d4-a716-446655440000',
-      name: '佐藤花子',
-      email: 'sato@empire-art.com',
-      permission: 'viewer',
-      member_type: 'core',
-      created_at: '2023-01-01T00:00:00Z',
-      updated_at: '2023-01-01T00:00:00Z'
-    },
-    {
-      id: '550e8400-e29b-41d4-a716-446655440022',
-      company_id: '550e8400-e29b-41d4-a716-446655440000',
-      name: '鈴木一郎',
-      email: 'suzuki@empire-art.com',
-      permission: 'restricted',
-      member_type: 'business',
-      created_at: '2023-01-01T00:00:00Z',
-      updated_at: '2023-01-01T00:00:00Z'
-    },
-    {
-      id: '550e8400-e29b-41d4-a716-446655440023',
-      company_id: '550e8400-e29b-41d4-a716-446655440000',
-      name: '山田太郎',
-      email: 'yamada@empire-art.com',
-      permission: 'viewer',
-      member_type: 'business',
-      created_at: '2023-01-01T00:00:00Z',
-      updated_at: '2023-01-01T00:00:00Z'
-    }
-  ],
-  companies: [
-    {
-      id: '1',
-      name: 'Empire Art',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
-  ],
-  positions: [
-    {
-      id: '1',
-      company_id: '1',
-      name: 'CEO',
-      member_id: '550e8400-e29b-41d4-a716-446655440020', // 田中太郎
-      person_name: '田中太郎', // 後方互換性のため残す
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '2',
-      company_id: '1',
-      name: 'CTO',
-      member_id: '550e8400-e29b-41d4-a716-446655440021', // 佐藤花子
-      person_name: '佐藤花子', // 後方互換性のため残す
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '3',
-      company_id: '1',
-      name: 'CFO',
-      member_id: '550e8400-e29b-41d4-a716-446655440022', // 鈴木一郎
-      person_name: '鈴木一郎', // 後方互換性のため残す
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
-  ],
-  layers: [
-    {
-      id: '1',
-      company_id: '1',
-      name: '事業',
-      type: 'business',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-      displayTab: 'company' // 会社タブで表示
-    },
-    {
-      id: '2',
-      company_id: '1',
-      name: 'Webサービス事業',
-      type: 'business',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-      displayTab: '1' // Webサービス事業タブで表示
-    },
-    {
-      id: '3',
-      company_id: '1',
-      name: 'コンサルティング事業',
-      type: 'business',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-      displayTab: '2' // コンサルティング事業タブで表示
-    }
-  ],
-  businesses: [
-    {
-      id: '1',
-      layer_id: '1',
-      name: 'Webサービス事業',
-      goal: 'ユーザー数100万人達成',
-      responsible_person_id: '550e8400-e29b-41d4-a716-446655440020', // 田中太郎
-      responsible_person: '田中太郎', // 後方互換性のため残す
-      category: 'デジタル',
-      position_x: 100,
-      position_y: 400,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '2',
-      layer_id: '1',
-      name: 'コンサルティング事業',
-      goal: '売上前年比150%',
-      responsible_person_id: '550e8400-e29b-41d4-a716-446655440021', // 佐藤花子
-      responsible_person: '佐藤花子', // 後方互換性のため残す
-      category: 'サービス',
-      position_x: 400,
-      position_y: 400,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
-  ],
-  tasks: [
-    {
-      id: '1',
-      business_id: '1',
-      layer_id: '1',
-      name: 'プロダクト開発',
-      goal: '新機能リリース',
-      responsible_person_id: '550e8400-e29b-41d4-a716-446655440023', // 山田太郎
-      responsible_person: '山田太郎', // 後方互換性のため残す
-      group_name: '開発',
-      position_x: 100,
-      position_y: 600,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '2',
-      business_id: '1',
-      layer_id: '1',
-      name: 'マーケティング',
-      goal: 'ユーザー獲得',
-      responsible_person_id: '550e8400-e29b-41d4-a716-446655440021', // 佐藤花子
-      responsible_person: '佐藤花子', // 後方互換性のため残す
-      group_name: '営業',
-      position_x: 300,
-      position_y: 600,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '3',
-      business_id: '2',
-      layer_id: '1',
-      name: 'クライアント対応',
-      goal: '顧客満足度向上',
-      responsible_person_id: '550e8400-e29b-41d4-a716-446655440022', // 鈴木一郎
-      responsible_person: '鈴木一郎', // 後方互換性のため残す
-      group_name: 'CS',
-      position_x: 400,
-      position_y: 600,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
-  ],
-  executors: [
-    {
-      id: '1',
-      task_id: '1',
-      name: '開発者A',
-      role: 'フロントエンド',
-      position_x: 50,
-      position_y: 800,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '2',
-      task_id: '1',
-      name: '開発者B',
-      role: 'バックエンド',
-      position_x: 150,
-      position_y: 800,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '3',
-      task_id: '2',
-      name: 'マーケターA',
-      role: 'デジタル広告',
-      position_x: 250,
-      position_y: 800,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '4',
-      task_id: '2',
-      name: 'マーケターB',
-      role: 'コンテンツ',
-      position_x: 350,
-      position_y: 800,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '5',
-      task_id: '3',
-      name: 'CS担当者',
-      role: 'サポート',
-      position_x: 450,
-      position_y: 800,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
-  ]
-}
+import { OrganizationDataService, OrganizationData } from '@/lib/services/organizationDataService'
 
 function DashboardContent() {
   const { user, member: currentUser, signOut } = useAuth()
   const [viewMode, setViewMode] = useState<'company' | 'business'>('company')
   const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null)
+  const [organizationData, setOrganizationData] = useState<OrganizationData | null>(null)
+  const [loading, setLoading] = useState(false) // 強制的にfalse
   
   // タブ別ノード位置保持機能
   const [nodePositionsByTab, setNodePositionsByTab] = useState<Record<string, Record<string, { x: number; y: number }>>>({
-    company: {},
-    ...Object.fromEntries(sampleData.businesses.map(business => [business.id, {}]))
+    company: {}
   })
+
+  // 組織データを取得
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!currentUser) return
+
+      setLoading(true)
+      try {
+        const data = await OrganizationDataService.fetchOrganizationData(currentUser)
+        setOrganizationData(data)
+        
+        // 事業データがある場合、タブ用のノード位置を初期化
+        if (data.businesses.length > 0) {
+          const businessTabs = Object.fromEntries(
+            data.businesses.map(business => [business.id, {}])
+          )
+          setNodePositionsByTab(prev => ({
+            ...prev,
+            ...businessTabs
+          }))
+        }
+      } catch (error) {
+        console.error('組織データ取得エラー:', error)
+        // エラー時は最小限のデータを生成
+        setOrganizationData(OrganizationDataService.generateMinimalDemoData(currentUser))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [currentUser])
   
   // 現在のタブキーを取得
   const getCurrentTabKey = () => {
@@ -288,28 +74,20 @@ function DashboardContent() {
     await signOut()
   }
 
-  // 認証ユーザーが無い場合はローディング
-  if (!user) {
+  // 認証ユーザーまたはデータ読み込み中の場合はローディング
+  if (!user || !currentUser || loading || !organizationData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">読み込み中...</p>
+          <p className="mt-4 text-gray-600">
+            {!user ? '認証中...' : 
+             !currentUser ? 'ユーザー情報読み込み中...' : 
+             '組織データ読み込み中...'}
+          </p>
         </div>
       </div>
     )
-  }
-
-  // メンバーデータがない場合は一時的にサンプルユーザーを使用
-  const displayUser = currentUser || {
-    id: user.id,
-    company_id: '550e8400-e29b-41d4-a716-446655440000',
-    name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
-    email: user.email || '',
-    permission: 'admin' as const,
-    member_type: 'core' as const,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
   }
 
   return (
@@ -343,7 +121,7 @@ function DashboardContent() {
                   </button>
                   
                   {/* 事業ごとのタブ */}
-                  {sampleData.businesses.map((business) => (
+                  {organizationData.businesses.map((business) => (
                     <button 
                       key={business.id}
                       onClick={() => {
@@ -376,8 +154,8 @@ function DashboardContent() {
                 {/* ユーザー情報とログアウト */}
                 <div className="flex items-center space-x-3">
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{displayUser.name}</p>
-                    <p className="text-xs text-gray-500">{displayUser.permission}</p>
+                    <p className="text-sm font-medium text-gray-900">{currentUser.name}</p>
+                    <p className="text-xs text-gray-500">{currentUser.permission}</p>
                   </div>
                   <button
                     onClick={handleSignOut}
@@ -394,14 +172,14 @@ function DashboardContent() {
           </div>
         </div>
         <OrganizationFlowBoard 
-          companies={sampleData.companies}
-          positions={sampleData.positions}
-          layers={sampleData.layers}
-          businesses={sampleData.businesses}
-          tasks={sampleData.tasks}
-          executors={sampleData.executors}
-          members={sampleData.members}
-          currentUser={displayUser}
+          companies={organizationData.companies}
+          positions={organizationData.positions}
+          layers={organizationData.layers}
+          businesses={organizationData.businesses}
+          tasks={organizationData.tasks}
+          executors={organizationData.executors}
+          members={organizationData.members}
+          currentUser={currentUser}
           viewMode={viewMode}
           selectedBusinessId={selectedBusiness}
           nodePositions={nodePositionsByTab[getCurrentTabKey()]}

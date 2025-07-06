@@ -84,6 +84,7 @@ export type RoleType = 'position' | 'business_manager' | 'task_manager';
 export interface Member {
   id: string;
   company_id: string;
+  auth_user_id?: string; // Supabase Auth user ID (nullable for backwards compatibility)
   name: string;
   email: string;
   permission: MemberPermission;

@@ -25,10 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession()
         setUser(session?.user ?? null)
         
-        // TODO: メンバーデータ読み込みは後で実装
-        // if (session?.user) {
-        //   await loadMemberData(session.user.id)
-        // }
+        if (session?.user) {
+          await loadMemberData(session.user.id)
+        }
       } catch (error) {
         console.error('セッション取得エラー:', error)
       } finally {
@@ -43,13 +42,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         setUser(session?.user ?? null)
         
-        // TODO: メンバーデータ読み込みは後で実装
-        // if (session?.user) {
-        //   await loadMemberData(session.user.id)
-        // } else {
-        //   setMember(null)
-        // }
-        setMember(null) // 一時的にnullに設定
+        if (session?.user) {
+          await loadMemberData(session.user.id)
+        } else {
+          setMember(null)
+        }
         
         setLoading(false)
       }
@@ -60,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // メンバーデータを読み込み
   const loadMemberData = async (userId: string) => {
+    console.log('メンバーデータ読み込み開始:', userId)
+    
     try {
       const { data, error } = await supabase
         .from('members')
@@ -67,15 +66,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('auth_user_id', userId)
         .single()
 
-      if (error && error.code !== 'PGRST116') { // レコードが見つからない場合以外のエラー
-        console.error('メンバーデータ取得エラー:', error)
+      console.log('Supabaseレスポンス:', { data, error })
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('メンバーレコードが見つかりません（新規ユーザーまたはトリガー未実行）')
+        } else if (error.code === '42501') {
+          console.log('メンバーデータアクセス権限がありません（RLSポリシー）')
+        } else {
+          console.error('メンバーデータ取得エラー:', error)
+        }
+        setMember(null)
         return
       }
 
       if (data) {
+        console.log('メンバーデータ設定:', data)
         setMember({
           id: data.id,
           company_id: data.company_id,
+          auth_user_id: data.auth_user_id,
           name: data.name,
           email: data.email,
           permission: data.permission,
@@ -84,12 +94,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           updated_at: data.updated_at
         })
       } else {
-        // メンバーデータが見つからない場合（新規ユーザー）
-        console.log('メンバーデータが見つかりません。新規ユーザーの可能性があります。')
+        console.log('メンバーデータがnull')
         setMember(null)
       }
     } catch (error) {
-      console.error('メンバーデータ読み込みエラー:', error)
+      console.error('メンバーデータ読み込み例外エラー:', error)
       setMember(null)
     }
   }
@@ -111,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // サインアップ
   const signUp = async (email: string, password: string, userData: SignUpData) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -119,29 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
 
-      if (error) {
-        return { error }
-      }
-
-      // メンバーレコードを作成（サインアップが成功した場合）
-      if (data.user && !error) {
-        const { error: memberError } = await supabase
-          .from('members')
-          .insert({
-            auth_user_id: data.user.id,
-            name: userData.name,
-            email: email,
-            permission: userData.permission || 'viewer',
-            member_type: 'core',
-            company_id: '550e8400-e29b-41d4-a716-446655440000' // 暫定的な会社ID
-          })
-
-        if (memberError) {
-          console.error('メンバー作成エラー:', memberError)
-        }
-      }
-
-      return { error: null }
+      return { error }
     } catch (error) {
       return { error: error as Error }
     }

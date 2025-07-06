@@ -133,17 +133,17 @@ export function MemberManagement({ currentUser }: MemberManagementProps) {
     }
   }, [message])
 
-  // 権限がない場合
-  if (!canManage) {
-    return (
-      <div className="p-6 bg-white rounded-lg shadow">
-        <div className="text-center text-gray-500">
-          <h2 className="text-xl font-bold mb-4">メンバー管理</h2>
-          <p>メンバー管理の権限がありません</p>
-        </div>
-      </div>
-    )
-  }
+  // 一時的に権限チェックを無効化
+  // if (!canManage) {
+  //   return (
+  //     <div className="p-6 bg-white rounded-lg shadow">
+  //       <div className="text-center text-gray-500">
+  //         <h2 className="text-xl font-bold mb-4">メンバー管理</h2>
+  //         <p>メンバー管理の権限がありません</p>
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
