@@ -34,24 +34,33 @@ export interface Database {
         Row: {
           id: string
           company_id: string
-          name: string
-          person_name: string
+          name: 'CEO' | 'CTO' | 'CFO' | 'COO'
+          member_id: string | null
+          person_name: string | null
+          position_x: number
+          position_y: number
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           company_id: string
-          name: string
-          person_name: string
+          name: 'CEO' | 'CTO' | 'CFO' | 'COO'
+          member_id?: string | null
+          person_name?: string | null
+          position_x?: number
+          position_y?: number
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           company_id?: string
-          name?: string
-          person_name?: string
+          name?: 'CEO' | 'CTO' | 'CFO' | 'COO'
+          member_id?: string | null
+          person_name?: string | null
+          position_x?: number
+          position_y?: number
           created_at?: string
           updated_at?: string
         }
@@ -62,6 +71,13 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "positions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
           }
         ]
       }
@@ -70,7 +86,8 @@ export interface Database {
           id: string
           company_id: string
           name: string
-          type: string
+          type: 'business' | 'management'
+          display_tab: string | null
           created_at: string
           updated_at: string
         }
@@ -78,7 +95,8 @@ export interface Database {
           id?: string
           company_id: string
           name: string
-          type: string
+          type: 'business' | 'management'
+          display_tab?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -86,7 +104,8 @@ export interface Database {
           id?: string
           company_id?: string
           name?: string
-          type?: string
+          type?: 'business' | 'management'
+          display_tab?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -105,8 +124,9 @@ export interface Database {
           id: string
           layer_id: string
           name: string
-          goal: string
-          responsible_person: string
+          goal: string | null
+          responsible_person_id: string | null
+          responsible_person: string | null
           category: string | null
           position_x: number
           position_y: number
@@ -117,11 +137,12 @@ export interface Database {
           id?: string
           layer_id: string
           name: string
-          goal: string
-          responsible_person: string
+          goal?: string | null
+          responsible_person_id?: string | null
+          responsible_person?: string | null
           category?: string | null
-          position_x: number
-          position_y: number
+          position_x?: number
+          position_y?: number
           created_at?: string
           updated_at?: string
         }
@@ -129,8 +150,9 @@ export interface Database {
           id?: string
           layer_id?: string
           name?: string
-          goal?: string
-          responsible_person?: string
+          goal?: string | null
+          responsible_person_id?: string | null
+          responsible_person?: string | null
           category?: string | null
           position_x?: number
           position_y?: number
@@ -144,6 +166,13 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "layers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "businesses_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
           }
         ]
       }
@@ -153,8 +182,9 @@ export interface Database {
           business_id: string | null
           layer_id: string
           name: string
-          goal: string
-          responsible_person: string
+          goal: string | null
+          responsible_person_id: string | null
+          responsible_person: string | null
           group_name: string | null
           position_x: number
           position_y: number
@@ -166,11 +196,12 @@ export interface Database {
           business_id?: string | null
           layer_id: string
           name: string
-          goal: string
-          responsible_person: string
+          goal?: string | null
+          responsible_person_id?: string | null
+          responsible_person?: string | null
           group_name?: string | null
-          position_x: number
-          position_y: number
+          position_x?: number
+          position_y?: number
           created_at?: string
           updated_at?: string
         }
@@ -179,8 +210,9 @@ export interface Database {
           business_id?: string | null
           layer_id?: string
           name?: string
-          goal?: string
-          responsible_person?: string
+          goal?: string | null
+          responsible_person_id?: string | null
+          responsible_person?: string | null
           group_name?: string | null
           position_x?: number
           position_y?: number
@@ -200,6 +232,13 @@ export interface Database {
             columns: ["layer_id"]
             isOneToOne: false
             referencedRelation: "layers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "members"
             referencedColumns: ["id"]
           }
         ]
@@ -241,6 +280,115 @@ export interface Database {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      members: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          email: string
+          permission: 'admin' | 'viewer' | 'restricted'
+          member_type: 'core' | 'business'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          email: string
+          permission: 'admin' | 'viewer' | 'restricted'
+          member_type: 'core' | 'business'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          name?: string
+          email?: string
+          permission?: 'admin' | 'viewer' | 'restricted'
+          member_type?: 'core' | 'business'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      member_businesses: {
+        Row: {
+          id: string
+          member_id: string
+          business_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          business_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          business_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_businesses_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_businesses_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      member_roles: {
+        Row: {
+          id: string
+          member_id: string
+          role_type: 'position' | 'business_manager' | 'task_manager'
+          reference_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          role_type: 'position' | 'business_manager' | 'task_manager'
+          reference_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          role_type?: 'position' | 'business_manager' | 'task_manager'
+          reference_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_roles_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
             referencedColumns: ["id"]
           }
         ]
