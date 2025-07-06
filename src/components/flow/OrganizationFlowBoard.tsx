@@ -38,7 +38,7 @@ import CustomEdge from './CustomEdge'
 import NodeToolbar from './NodeToolbar'
 
 // カスタムノードタイプマッピングを関数として定義（プロパティを渡すため）
-const createNodeTypes = (onAddNode: (parentId: string) => void, onEditNode: (nodeId: string) => void, onDeleteNode: (nodeId: string) => void) => ({
+const createNodeTypes = (onAddNode: (parentId: string, event?: React.MouseEvent) => void, onEditNode: (nodeId: string) => void, onDeleteNode: (nodeId: string) => void) => ({
   [NodeType.COMPANY]: (props: any) => <CompanyFlowNode {...props} onAddNode={onAddNode} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
   [NodeType.CXO]: (props: any) => <CxoFlowNode {...props} onAddNode={onAddNode} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
   [NodeType.CXO_LAYER]: (props: any) => <CxoLayerNode {...props} onEditNode={onEditNode} onDeleteNode={onDeleteNode} />,
@@ -438,7 +438,8 @@ export default function OrganizationFlowBoard({
                   label: updatedData.name || node.data.label,
                   type: updatedData.type,
                   description: updatedData.description,
-                  color: updatedData.color
+                  color: updatedData.color,
+                  displayTab: updatedData.displayTab
                 }
               }
             }

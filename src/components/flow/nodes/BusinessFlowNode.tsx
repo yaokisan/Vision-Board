@@ -7,7 +7,7 @@ import { FlowNode } from '@/types/flow'
 
 interface BusinessFlowNodeProps {
   data: FlowNode['data']
-  onAddNode?: (parentId: string) => void
+  onAddNode?: (parentId: string, event?: React.MouseEvent) => void
   onEditNode?: (nodeId: string) => void
   onDeleteNode?: (nodeId: string, event?: React.MouseEvent) => void
   id?: string
@@ -81,7 +81,7 @@ export default function BusinessFlowNode({ data, onAddNode, onEditNode, onDelete
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onAddNode?.(id || data.entity.id)
+                onAddNode?.(id || data.entity.id, e)
               }}
               className="w-6 h-6 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-colors z-50"
               style={{ zIndex: 1000 }}

@@ -157,7 +157,9 @@ export class FlowDataConverter {
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
           containerSize: finalSize,
-          displayTab: (layer as any).display_tab || 'company' // データベースのdisplay_tabカラムを使用
+          displayTab: (layer as any).display_tab || 'company', // データベースのdisplay_tabカラムを使用
+          color: (layer as any).color || 'gray', // データベースのcolorカラムを使用
+          description: (layer as any).description || '' // データベースのdescriptionカラムを使用
         },
         draggable: true,
         selectable: true
