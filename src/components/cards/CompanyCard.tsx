@@ -129,7 +129,7 @@ export default function CompanyCard({
                 <MemberSelector
                   members={members}
                   selectedMemberId={editCeoId}
-                  onSelect={setEditCeoId}
+                  onSelect={(memberId) => setEditCeoId(memberId || '')}
                   placeholder="CEOを選択してください"
                 />
               </div>
