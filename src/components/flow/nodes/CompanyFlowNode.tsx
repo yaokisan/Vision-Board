@@ -8,9 +8,10 @@ import { FlowNode } from '@/types/flow'
 interface CompanyFlowNodeProps {
   data: FlowNode['data']
   onAddNode?: (parentId: string) => void
+  onEditNode?: (nodeId: string) => void
 }
 
-export default function CompanyFlowNode({ data, onAddNode }: CompanyFlowNodeProps) {
+export default function CompanyFlowNode({ data, onAddNode, onEditNode }: CompanyFlowNodeProps) {
   const [isHovered, setIsHovered] = useState(false)
   const company = data.entity as Company
   
@@ -24,8 +25,24 @@ export default function CompanyFlowNode({ data, onAddNode }: CompanyFlowNodeProp
         {/* グラデーションバー */}
         <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-2xl" />
         
+        {/* ヘッダー部分 */}
+        <div className="flex justify-between items-start p-4 pb-0">
+          <div className="flex-1" />
+          {/* 編集ボタン */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              const nodeId = `company-${data.entity.id}`
+              onEditNode?.(nodeId)
+            }}
+            className="w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full flex items-center justify-center text-sm transition-colors"
+          >
+            ✏️
+          </button>
+        </div>
+
         {/* メインコンテンツ */}
-        <div className="p-6 text-center">
+        <div className="px-6 pb-6 text-center">
           <h2 className="text-xl font-bold text-gray-800 mb-3">{company.name}</h2>
           
           {/* CEO情報 */}

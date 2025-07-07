@@ -728,7 +728,7 @@ export default function OrganizationFlowBoard({
     
     // 基本的な階層ルール
     const validConnections: Record<NodeType, NodeType[]> = {
-      [NodeType.COMPANY]: [NodeType.CXO, NodeType.CXO_LAYER, NodeType.BUSINESS_LAYER],
+      [NodeType.COMPANY]: [NodeType.CXO, NodeType.CXO_LAYER, NodeType.BUSINESS_LAYER, NodeType.BUSINESS],
       [NodeType.CXO]: [NodeType.BUSINESS, NodeType.BUSINESS_LAYER, NodeType.CXO_LAYER],
       [NodeType.POSITION]: [NodeType.BUSINESS, NodeType.BUSINESS_LAYER, NodeType.CXO_LAYER],
       [NodeType.CXO_LAYER]: [NodeType.CXO, NodeType.BUSINESS_LAYER],

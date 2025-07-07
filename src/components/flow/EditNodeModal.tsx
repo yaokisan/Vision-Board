@@ -49,7 +49,7 @@ export default function EditNodeModal({
       const entity = data.entity || {}
       setFormData({
         name: entity.name || data.ceoName || data.label || '',
-        person_name: entity.person_name || '',
+        person_name: entity.person_name || data.ceoName || '',
         member_id: entity.member_id || null,
         goal: entity.goal || '',
         responsible_person: entity.responsible_person || '',
@@ -129,6 +129,34 @@ export default function EditNodeModal({
     
     // ノードタイプに基づいて適切なフォームを表示
     switch (nodeType) {
+      case NodeType.COMPANY:
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">会社名</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: Empire Art"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CEO名</label>
+              <input
+                type="text"
+                value={formData.person_name}
+                onChange={(e) => setFormData({ ...formData, person_name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                placeholder="例: 田中太郎"
+                required
+              />
+            </div>
+          </>
+        )
+
       case NodeType.CXO:
         return (
           <>

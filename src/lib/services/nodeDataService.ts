@@ -307,6 +307,76 @@ export class NodeDataService {
       const timestamp = new Date().toISOString()
 
       switch (table) {
+        case 'companies':
+          // 1. 会社情報を更新
+          updateQuery = supabase
+            .from('companies')
+            .update({
+              name: updatedData.name,
+              updated_at: timestamp
+            })
+            .eq('id', id)
+          
+          // 更新実行
+          const { error: companyError } = await updateQuery
+          if (companyError) {
+            console.error('Company update error:', companyError)
+            return { success: false, error: companyError.message }
+          }
+
+          // 2. CEO情報を更新/作成
+          if (updatedData.person_name) {
+            // 既存のCEOポジションを確認
+            const { data: existingCeo, error: ceoCheckError } = await supabase
+              .from('positions')
+              .select('id')
+              .eq('company_id', id)
+              .eq('name', 'CEO')
+              .single()
+
+            if (ceoCheckError && ceoCheckError.code !== 'PGRST116') {
+              console.error('CEO check error:', ceoCheckError)
+              return { success: false, error: ceoCheckError.message }
+            }
+
+            if (existingCeo) {
+              // 既存のCEOを更新
+              const { error: ceoUpdateError } = await supabase
+                .from('positions')
+                .update({
+                  person_name: updatedData.person_name,
+                  updated_at: timestamp
+                })
+                .eq('id', existingCeo.id)
+
+              if (ceoUpdateError) {
+                console.error('CEO update error:', ceoUpdateError)
+                return { success: false, error: ceoUpdateError.message }
+              }
+            } else {
+              // 新しいCEOを作成
+              const { error: ceoCreateError } = await supabase
+                .from('positions')
+                .insert({
+                  id: uuidv4(),
+                  company_id: id,
+                  name: 'CEO',
+                  person_name: updatedData.person_name,
+                  created_at: timestamp,
+                  updated_at: timestamp
+                })
+
+              if (ceoCreateError) {
+                console.error('CEO create error:', ceoCreateError)
+                return { success: false, error: ceoCreateError.message }
+              }
+            }
+          }
+
+          console.log('✅ COMPANY AND CEO UPDATED IN DATABASE:', { companyId: id, ceoName: updatedData.person_name })
+          return { success: true }
+          // breakは不要（returnで抜ける）
+
         case 'positions':
           updateQuery = supabase
             .from('positions')

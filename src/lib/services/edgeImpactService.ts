@@ -61,6 +61,12 @@ export class EdgeImpactService {
         return { success: false, error: sourceBusinessId.error }
       }
 
+      // 会社ノード（business_id = null）からの接続の場合は継承処理をスキップ
+      if (sourceBusinessId.businessId === null) {
+        console.log('⚠️ Skipping business_id inheritance from company node (null business_id):', sourceNodeId)
+        return { success: true }
+      }
+
       // 2. ターゲットノードのbusiness_idを更新
       const targetResult = await this.updateNodeBusinessId(targetNodeId, sourceBusinessId.businessId)
       if (!targetResult.success) {
@@ -157,7 +163,13 @@ export class EdgeImpactService {
         return { businessId: id }
       }
 
-      // その他のノードの場合はbusiness_idカラムを取得
+      // business_idカラムが存在しないテーブルの場合はnullを返す
+      if (table === 'companies' || table === 'positions' || table === 'layers') {
+        console.log('⚠️ Table without business_id column, returning null:', table, nodeId)
+        return { businessId: null }
+      }
+
+      // business_idカラムがあるテーブル（tasks, executors）の場合のみ取得
       const { data, error } = await supabase
         .from(table)
         .select('business_id')
@@ -189,6 +201,12 @@ export class EdgeImpactService {
       // 事業ノードの場合はbusiness_idを変更しない（自分自身のID）
       if (table === 'businesses') {
         console.log('🔄 Business node business_id not updated (uses own ID):', nodeId)
+        return { success: true }
+      }
+
+      // business_idカラムが存在しないテーブルの場合はスキップ
+      if (table === 'companies' || table === 'positions' || table === 'layers') {
+        console.log('⚠️ Skipping business_id update for table without business_id column:', table, nodeId)
         return { success: true }
       }
 
