@@ -15,8 +15,8 @@ export class FlowDataConverter {
       return true
     }
     
-    // business_id統合: business_idを優先、フォールバックでattribute（移行期間用）
-    const containerBusinessId = container.business_id || container.attribute
+    // business_id統合完了: business_idのみ使用
+    const containerBusinessId = container.business_id
     
     // business_idがnullまたは'company'の場合は会社レベル
     if (!containerBusinessId || containerBusinessId === 'company') {
@@ -71,7 +71,7 @@ export class FlowDataConverter {
           label: company.name,
           size: { width: 320, height: 120 },
           ceoName: ceo?.person_name,
-          attribute: (company as any).attribute || 'company' // NULLの場合は'company'として扱う
+          business_id: null // 会社ノードはbusiness_id=null
         },
         draggable: true,
         selectable: true
@@ -88,7 +88,7 @@ export class FlowDataConverter {
           entity: { id: 'cxo-layer', name: 'CXOレイヤー' },
           label: 'CXOレイヤー',
           containerSize: { width: 800, height: 200 },
-          attribute: 'company' // デフォルトは company 属性で表示
+          business_id: null // CXOレイヤーは会社レベル
         },
         draggable: true,
         selectable: true
@@ -113,7 +113,7 @@ export class FlowDataConverter {
             entity: position,
             label: `${position.name}: ${position.person_name}`,
             size: { width: 224, height: 120 },
-            attribute: (position as any).attribute || 'company' // NULLの場合は'company'として扱う
+            business_id: (position as any).business_id || null // CXOは通常null（会社レベル）
           },
           parentNode: 'cxo-layer',
           extent: 'parent' as const,
@@ -166,7 +166,7 @@ export class FlowDataConverter {
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
           containerSize: finalSize,
-          attribute: (layer as any).attribute || 'company', // NULLの場合は'company'として扱う
+          business_id: (layer as any).business_id || null, // レイヤーのbusiness_id
           color: (layer as any).color || 'gray', // データベースのcolorカラムを使用
           description: (layer as any).description || '' // データベースのdescriptionカラムを使用
         },
@@ -192,8 +192,7 @@ export class FlowDataConverter {
           entity: business,
           label: business.name,
           size: { width: 256, height: 160 },
-          business_id: business.id, // 事業自身のID
-          attribute: (business as any).attribute || 'company' // NULLの場合は'company'として扱う（移行期間用）
+          business_id: business.id // 事業自身のID
         },
         // parentNode削除: 事業は独立ノード
         draggable: true,
@@ -224,8 +223,7 @@ export class FlowDataConverter {
           entity: task,
           label: task.name,
           size: { width: 224, height: 100 },
-          business_id: task.business_id, // business_id統合用
-          attribute: (task as any).attribute || 'company' // NULLの場合は'company'として扱う（移行期間用）
+          business_id: task.business_id // business_id統合完了
         },
         // parentNode: parentId, // 業務ノードを独立ノードに変更
         // extent: 'parent' as const,
@@ -267,8 +265,7 @@ export class FlowDataConverter {
           entity: executor,
           label: executor.name,
           size: { width: 192, height: 80 },
-          business_id: task.business_id, // 所属業務の事業ID
-          attribute: (executor as any).attribute || 'company' // NULLの場合は'company'として扱う（移行期間用）
+          business_id: task.business_id // 所属業務の事業ID
         },
         // parentNode: `task-${executor.task_id}`, // 実行者ノードを独立ノードに変更
         // extent: 'parent' as const,
@@ -563,8 +560,7 @@ export class FlowDataConverter {
           // 事業レイヤーはbusiness_id/attributeに基づいてフィルタリング（統合版）
           if (node.type === 'business_layer') {
             return this.shouldShowContainer({
-              business_id: node.data.business_id,
-              attribute: node.data.attribute
+              business_id: node.data.business_id
             }, selectedBusinessId)
           }
           

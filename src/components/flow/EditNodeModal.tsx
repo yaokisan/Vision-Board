@@ -39,7 +39,6 @@ export default function EditNodeModal({
     description: '',
     type: '',
     color: '',
-    attribute: 'company',
     business_id: null as string | null, // business_id統合用
     task_id: null as string | null
   })
@@ -60,12 +59,6 @@ export default function EditNodeModal({
         description: data.description || entity.description || '',
         type: data.type || entity.type || '',
         color: data.color || entity.color || '',
-        attribute: (() => {
-          const attributeValue = data.attribute || entity.attribute || 'company'
-          // 有効な値かチェック（会社または実際の事業ID）
-          const validValues = ['company', ...businesses.map(b => b.id)]
-          return validValues.includes(attributeValue) ? attributeValue : 'company'
-        })(),
         business_id: entity.business_id || data.business_id || null, // business_id統合用
         task_id: entity.task_id || data.task_id || null
       })
@@ -99,40 +92,17 @@ export default function EditNodeModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 実行者の場合、task_idが変更されたら属性を自動同期
-    if (nodeData.type === NodeType.EXECUTOR && formData.task_id) {
-      const originalTaskId = nodeData.data.entity.task_id
-      if (originalTaskId !== formData.task_id) {
-        console.log('🔄 Task ID changed, syncing executor attribute...')
-        const syncResult = await NodeDataService.syncExecutorAttributeWithTask(
-          nodeData.data.entity.id,
-          formData.task_id
-        )
-        if (syncResult.success) {
-          console.log('✅ Executor attribute synced successfully')
-        } else {
-          console.error('❌ Failed to sync executor attribute:', syncResult.error)
-        }
-      }
-    }
+    // business_id統合完了: 実行者のbusiness_idは親タスクから自動継承される
     
-    // business_id統合: Task編集時のバリデーション
+    // business_id統合完了: Task編集時のバリデーション
     if (nodeData.type === NodeType.TASK) {
       // business_idが空文字の場合はnullに変換
       if (formData.business_id === '') {
         formData.business_id = null
       }
       
-      // 移行期間中: business_idとattributeを同期
-      if (formData.business_id) {
-        formData.attribute = formData.business_id
-      } else {
-        formData.attribute = 'company'
-      }
-      
       console.log('💾 Task update with business_id:', {
-        business_id: formData.business_id,
-        attribute: formData.attribute
+        business_id: formData.business_id
       })
     }
     
@@ -152,45 +122,6 @@ export default function EditNodeModal({
     }
   }
 
-  // 共通の属性選択フィールド
-  const renderAttributeField = () => {
-    const availableBusinesses = getAvailableBusinesses()
-    
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
-        <div className="space-y-2">
-          <label className="flex items-center">
-            <input
-              type="radio"
-              name="attribute"
-              value="company"
-              checked={formData.attribute === 'company'}
-              onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700">会社</span>
-          </label>
-          {availableBusinesses.map((business: { id: string; name: string }) => (
-            <label key={business.id} className="flex items-center">
-              <input
-                type="radio"
-                name="attribute"
-                value={business.id}
-                checked={formData.attribute === business.id}
-                onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
-                className="mr-2"
-              />
-              <span className="text-sm text-gray-700">{business.name}</span>
-            </label>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500 mt-2">
-          このノードの所属属性を選択してください
-        </p>
-      </div>
-    )
-  }
 
   const renderFormFields = () => {
     const entity = nodeData.data.entity
@@ -233,7 +164,6 @@ export default function EditNodeModal({
                 この役職を担当するメンバーを選択してください
               </p>
             </div>
-            {renderAttributeField()}
           </>
         )
       
@@ -282,7 +212,6 @@ export default function EditNodeModal({
                 この事業の責任者を選択してください
               </p>
             </div>
-            {renderAttributeField()}
           </>
         )
       
@@ -350,7 +279,6 @@ export default function EditNodeModal({
                 この業務が所属する事業を選択してください
               </p>
             </div>
-            {renderAttributeField()}
           </>
         )
       
@@ -397,7 +325,6 @@ export default function EditNodeModal({
                 この実行者が所属する業務を選択してください。変更すると属性が自動的に同期されます。
               </p>
             </div>
-            {renderAttributeField()}
           </>
         )
       
@@ -426,38 +353,6 @@ export default function EditNodeModal({
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                 placeholder="例: 開発・技術・エンジニアリングエリア"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="attribute"
-                    value="company"
-                    checked={formData.attribute === 'company'}
-                    onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-gray-700">会社</span>
-                </label>
-                {availableBusinesses.map((business: { id: string; name: string }) => (
-                  <label key={business.id} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="attribute"
-                      value={business.id}
-                      checked={formData.attribute === business.id}
-                      onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
-                      className="mr-2"
-                    />
-                    <span className="text-sm text-gray-700">{business.name}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                このノードの所属属性を選択してください
-              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">コンテナ色</label>
@@ -520,7 +415,6 @@ export default function EditNodeModal({
                 required
               />
             </div>
-            {renderAttributeField()}
           </>
         )
     }

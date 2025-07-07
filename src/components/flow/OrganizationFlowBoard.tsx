@@ -215,36 +215,7 @@ export default function OrganizationFlowBoard({
     
     console.log('✅ EDGE SAVED SUCCESSFULLY:', saveResult.edgeId)
     
-    // 属性継承処理
-    if (EdgeService.shouldInheritAttribute(params.source, params.target)) {
-      console.log('🔗 ATTEMPTING ATTRIBUTE INHERITANCE:', { source: params.source, target: params.target })
-      
-      const inheritResult = await NodeDataService.inheritAttributeFromParent(params.source, params.target)
-      if (inheritResult.success) {
-        console.log('✅ ATTRIBUTE INHERITED SUCCESSFULLY')
-        
-        // React状態の子ノードの属性を更新
-        const parentAttributeResult = await NodeDataService.getNodeAttribute(params.source)
-        if (parentAttributeResult.success) {
-          setNodes((nds) => 
-            nds.map((node) => {
-              if (node.id === params.target) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    attribute: parentAttributeResult.attribute || 'company'
-                  }
-                }
-              }
-              return node
-            })
-          )
-        }
-      } else {
-        console.error('❌ ATTRIBUTE INHERITANCE FAILED:', inheritResult.error)
-      }
-    }
+    // business_id統合完了: 属性継承はbusiness_idベースで自動処理
     
     // データベース保存成功後、React Flow状態を更新
     setEdges((eds) => addEdge({
@@ -280,11 +251,6 @@ export default function OrganizationFlowBoard({
     return null
   }, [viewMode, selectedBusinessId])
 
-  // 移行期間用: 既存のgetCurrentAttribute関数を維持（後で削除予定）
-  const getCurrentAttribute = useCallback(() => {
-    const businessId = getCurrentBusinessId()
-    return businessId || 'company'
-  }, [getCurrentBusinessId])
 
   // ノード追加ハンドラー
   const handleAddNode = useCallback(
@@ -293,13 +259,11 @@ export default function OrganizationFlowBoard({
       let finalNodeType = nodeType
       let finalData = { ...nodeData }
       
-      // business_id統合: 現在のタブコンテキストに基づいて自動設定
+      // business_id統合完了: 現在のタブコンテキストに基づいて自動設定
       const currentBusinessId = getCurrentBusinessId()
-      const currentAttribute = getCurrentAttribute()
       
-      // business_idを設定（移行期間中は並行設定）
+      // business_idを設定
       finalData.business_id = finalData.business_id || currentBusinessId
-      finalData.attribute = finalData.attribute || currentAttribute
       
       // 事業ノードの場合は特別な処理（後でIDが決まった時に自分自身のIDに設定される）
       if (finalNodeType === NodeType.BUSINESS) {
@@ -307,9 +271,8 @@ export default function OrganizationFlowBoard({
         console.log('🏢 BUSINESS NODE: attribute will be set to its own ID after save')
       }
       
-      console.log('🏷️ AUTO-ASSIGNED:', {
+      console.log('🏷️ AUTO-ASSIGNED business_id:', {
         business_id: currentBusinessId,
-        attribute: currentAttribute,
         nodeType: finalNodeType
       })
       
@@ -321,7 +284,7 @@ export default function OrganizationFlowBoard({
           label: nodeData.title || 'New Container',
           type: nodeData.color === 'purple' ? 'management' : 'business',
           containerSize: { width: 500, height: 400 },
-          attribute: finalData.attribute // 属性を保持
+          business_id: finalData.business_id // business_idを設定
         }
       }
 
@@ -386,7 +349,7 @@ export default function OrganizationFlowBoard({
         setEdges((eds) => [...eds, newEdge])
       }
     },
-    [selectedParentNode, setNodes, setEdges, currentUser.company_id, getCurrentAttribute]
+    [selectedParentNode, setNodes, setEdges, currentUser.company_id, getCurrentBusinessId]
   )
 
   // コンテナクリックでノード追加モーダルを開く
@@ -584,12 +547,12 @@ export default function OrganizationFlowBoard({
     console.log('🎯 DRAG DROP NODE:', { nodeType, position })
     
     // 現在のタブコンテキストに基づいて属性を自動設定
-    const currentAttribute = getCurrentAttribute()
+    const currentBusinessId = getCurrentBusinessId()
     
     // デフォルトデータを準備
     const defaultData = {
       name: getDefaultNodeLabel(nodeType),
-      attribute: currentAttribute, // 属性を自動設定
+      business_id: currentBusinessId, // 属性を自動設定
       ...(nodeType === NodeType.CXO && { person_name: '' }),
       ...(nodeType === NodeType.BUSINESS && { goal: '', responsible_person: '' }),
       ...(nodeType === NodeType.TASK && { goal: '', responsible_person: '' }),
@@ -600,7 +563,7 @@ export default function OrganizationFlowBoard({
       })
     }
     
-    console.log('🏷️ DRAG-DROP AUTO-ASSIGNED ATTRIBUTE:', currentAttribute, 'for node type:', nodeType)
+    console.log('🏷️ DRAG-DROP AUTO-ASSIGNED business_id:', currentBusinessId, 'for node type:', nodeType)
 
     // データベースに保存
     console.log('💾 SAVING DRAG-DROPPED NODE TO DATABASE:', { nodeType, defaultData, position })
@@ -638,7 +601,7 @@ export default function OrganizationFlowBoard({
     }
     
     setNodes((nds) => [...nds, newNode])
-  }, [setNodes, currentUser.company_id, getCurrentAttribute])
+  }, [setNodes, currentUser.company_id, getCurrentBusinessId])
 
   // デフォルトノードラベルを取得
   const getDefaultNodeLabel = (nodeType: NodeType): string => {
@@ -776,33 +739,7 @@ export default function OrganizationFlowBoard({
         console.log('✅ EDGE DELETED SUCCESSFULLY:', edge.id)
       }
       
-      // 属性継承対象のエッジだった場合、子ノードの属性をリセット
-      if (EdgeService.shouldInheritAttribute(edge.source, edge.target)) {
-        console.log('🔄 RESETTING CHILD NODE ATTRIBUTE:', edge.target)
-        
-        const resetResult = await NodeDataService.resetNodeAttributeToCompany(edge.target)
-        if (resetResult.success) {
-          console.log('✅ ATTRIBUTE RESET SUCCESSFULLY')
-          
-          // React状態の子ノードの属性を更新
-          setNodes((nds) => 
-            nds.map((node) => {
-              if (node.id === edge.target) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    attribute: 'company'
-                  }
-                }
-              }
-              return node
-            })
-          )
-        } else {
-          console.error('❌ ATTRIBUTE RESET FAILED:', resetResult.error)
-        }
-      }
+      // business_id統合完了: エッジ削除時の特別処理は不要
     }
     
     // React Flow状態から削除
