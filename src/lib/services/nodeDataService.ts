@@ -121,7 +121,7 @@ export class NodeDataService {
         goal: nodeData.data.goal || '',
         responsible_person: nodeData.data.responsible_person || '',
         group_name: nodeData.data.group_name || '',
-        attribute: nodeData.data.attribute === 'company' ? null : nodeData.data.attribute,
+        attribute: nodeData.data.attribute === 'company' ? null : nodeData.data.attribute, // 移行期間用（将来削除予定）
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),

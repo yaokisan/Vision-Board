@@ -5,9 +5,9 @@ import { FlowNode, NodeType, EdgeType, OrganizationFlowData } from '@/types/flow
 import { supabase } from '@/lib/supabase/client'
 
 export class FlowDataConverter {
-  // コンテナ表示判定メソッド
+  // コンテナ表示判定メソッド（business_id統合版）
   static shouldShowContainer(
-    container: { attribute?: string },
+    container: { business_id?: string | null; attribute?: string },
     currentTab: 'company' | string
   ): boolean {
     // 会社タブでは全てのコンテナを表示
@@ -15,9 +15,16 @@ export class FlowDataConverter {
       return true
     }
     
-    // 事業タブでは、該当事業設定のコンテナのみ表示
-    const containerAttribute = container.attribute || 'company'
-    return containerAttribute === currentTab
+    // business_id統合: business_idを優先、フォールバックでattribute（移行期間用）
+    const containerBusinessId = container.business_id || container.attribute
+    
+    // business_idがnullまたは'company'の場合は会社レベル
+    if (!containerBusinessId || containerBusinessId === 'company') {
+      return currentTab === 'company'
+    }
+    
+    // 事業タブでは、該当事業IDのコンテナのみ表示
+    return containerBusinessId === currentTab
   }
   // ノード変換
   static convertToNodes(
@@ -185,7 +192,8 @@ export class FlowDataConverter {
           entity: business,
           label: business.name,
           size: { width: 256, height: 160 },
-          attribute: (business as any).attribute || 'company' // NULLの場合は'company'として扱う
+          business_id: business.id, // 事業自身のID
+          attribute: (business as any).attribute || 'company' // NULLの場合は'company'として扱う（移行期間用）
         },
         // parentNode削除: 事業は独立ノード
         draggable: true,
@@ -216,7 +224,8 @@ export class FlowDataConverter {
           entity: task,
           label: task.name,
           size: { width: 224, height: 100 },
-          attribute: (task as any).attribute || 'company' // NULLの場合は'company'として扱う
+          business_id: task.business_id, // business_id統合用
+          attribute: (task as any).attribute || 'company' // NULLの場合は'company'として扱う（移行期間用）
         },
         // parentNode: parentId, // 業務ノードを独立ノードに変更
         // extent: 'parent' as const,
@@ -258,7 +267,8 @@ export class FlowDataConverter {
           entity: executor,
           label: executor.name,
           size: { width: 192, height: 80 },
-          attribute: (executor as any).attribute || 'company' // NULLの場合は'company'として扱う
+          business_id: task.business_id, // 所属業務の事業ID
+          attribute: (executor as any).attribute || 'company' // NULLの場合は'company'として扱う（移行期間用）
         },
         // parentNode: `task-${executor.task_id}`, // 実行者ノードを独立ノードに変更
         // extent: 'parent' as const,
@@ -550,10 +560,12 @@ export class FlowDataConverter {
         
         // レイヤーノードとつながっているノードを含めてフィルタリング
         nodes = nodes.filter(node => {
-          // 事業レイヤーはattributeに基づいてフィルタリング
+          // 事業レイヤーはbusiness_id/attributeに基づいてフィルタリング（統合版）
           if (node.type === 'business_layer') {
-            const attribute = node.data.attribute || 'company'
-            return this.shouldShowContainer({ attribute }, selectedBusinessId)
+            return this.shouldShowContainer({
+              business_id: node.data.business_id,
+              attribute: node.data.attribute
+            }, selectedBusinessId)
           }
           
           // つながっているノードを表示
