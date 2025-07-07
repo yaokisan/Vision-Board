@@ -70,21 +70,9 @@ export class NodeDataService {
   }
 
   /**
-   * 事業ノード保存
+   * 事業ノード保存（新構造: 独立ノード、layer_idなし）
    */
   private static async saveBusiness(nodeData: NodeSaveData, nodeId: string) {
-    // layer_id を親ノードから取得、なければデフォルトレイヤーを作成
-    let layerId = this.extractLayerIdFromParent(nodeData.parentNodeId)
-    
-    if (!layerId) {
-      // デフォルトレイヤーを取得または作成
-      const defaultLayerResult = await this.getOrCreateDefaultLayer(nodeData.companyId)
-      if (!defaultLayerResult.success) {
-        return { success: false, error: `Failed to create default layer: ${defaultLayerResult.error}` }
-      }
-      layerId = defaultLayerResult.layerId!
-    }
-    
     // 事業ノードの属性は自分自身のIDに設定（事業属性を作成）
     const businessAttribute = nodeId // 事業ノードは常に自分自身のIDを属性にする
     
@@ -92,7 +80,7 @@ export class NodeDataService {
       .from('businesses')
       .insert({
         id: nodeId,
-        layer_id: layerId,
+        // layer_id削除: 事業は独立ノード
         name: nodeData.data.name || 'New Business',
         goal: nodeData.data.goal || '',
         responsible_person: nodeData.data.responsible_person || '',
@@ -113,27 +101,22 @@ export class NodeDataService {
   }
 
   /**
-   * 業務ノード保存
+   * 業務ノード保存（新構造: 必ずbusiness_idを持つ、layer_id削除）
    */
   private static async saveTask(nodeData: NodeSaveData, nodeId: string) {
-    // business_id または layer_id を親ノードから取得
-    let { businessId, layerId } = this.extractTaskParentIds(nodeData.parentNodeId)
+    // business_id を親ノードから取得（必須）
+    const businessId = this.extractBusinessIdFromParent(nodeData.parentNodeId)
     
-    // 親が指定されていない場合はデフォルトレイヤーを使用
-    if (!businessId && !layerId) {
-      const defaultLayerResult = await this.getOrCreateDefaultLayer(nodeData.companyId)
-      if (!defaultLayerResult.success) {
-        return { success: false, error: `Failed to create default layer: ${defaultLayerResult.error}` }
-      }
-      layerId = defaultLayerResult.layerId!
+    if (!businessId) {
+      return { success: false, error: 'Task must belong to a business. Parent business not found.' }
     }
     
     const { error } = await supabase
       .from('tasks')
       .insert({
         id: nodeId,
-        business_id: businessId,
-        layer_id: layerId,
+        business_id: businessId, // 必須
+        // layer_id削除: 業務は必ず事業に属する
         name: nodeData.data.name || 'New Task',
         goal: nodeData.data.goal || '',
         responsible_person: nodeData.data.responsible_person || '',
@@ -220,7 +203,20 @@ export class NodeDataService {
   }
 
   /**
-   * 親ノードIDからbusiness_idとlayer_idを抽出
+   * 親ノードIDからbusiness_idを抽出（新構造用）
+   */
+  private static extractBusinessIdFromParent(parentNodeId?: string): string | null {
+    if (!parentNodeId) return null
+    
+    if (parentNodeId.startsWith('business-')) {
+      return parentNodeId.replace('business-', '')
+    }
+    
+    return null
+  }
+
+  /**
+   * 親ノードIDからbusiness_idとlayer_idを抽出（レガシー、削除予定）
    */
   private static extractTaskParentIds(parentNodeId?: string): { businessId: string | null; layerId: string | null } {
     if (!parentNodeId) return { businessId: null, layerId: null }
@@ -609,7 +605,7 @@ export class NodeDataService {
       }
 
       // 子ノードの属性を更新
-      const updateResult = await this.updateNodeAttribute(targetNodeId, parentResult.attribute)
+      const updateResult = await this.updateNodeAttribute(targetNodeId, parentResult.attribute || null)
       if (!updateResult.success) {
         return { success: false, error: `Failed to update child attribute: ${updateResult.error}` }
       }
@@ -663,7 +659,7 @@ export class NodeDataService {
 
       // 実行者ノードの属性を更新
       const executorNodeId = `executor-${executorId}`
-      const updateResult = await this.updateNodeAttribute(executorNodeId, taskResult.attribute)
+      const updateResult = await this.updateNodeAttribute(executorNodeId, taskResult.attribute || null)
       if (!updateResult.success) {
         return { success: false, error: `Failed to update executor attribute: ${updateResult.error}` }
       }

@@ -168,7 +168,7 @@ export class FlowDataConverter {
       })
     })
     
-    // 事業ノード - レイヤー内に配置
+    // 事業ノード - 独立配置（レイヤーに属さない）
     businesses.forEach((business, index) => {
       nodes.push({
         id: `business-${business.id}`,
@@ -176,10 +176,10 @@ export class FlowDataConverter {
         position: { 
           x: business.position_x !== null && business.position_x !== undefined 
             ? Number(business.position_x) 
-            : 50 + (index % 2) * 280, 
+            : 50 + (index % 3) * 280, 
           y: business.position_y !== null && business.position_y !== undefined 
             ? Number(business.position_y) 
-            : 50 + Math.floor(index / 2) * 200
+            : 50 + Math.floor(index / 3) * 200
         },
         data: {
           entity: business,
@@ -187,16 +187,19 @@ export class FlowDataConverter {
           size: { width: 256, height: 160 },
           attribute: (business as any).attribute || 'company' // NULLの場合は'company'として扱う
         },
-        parentNode: `layer-${business.layer_id}`,
-        extent: 'parent' as const,
+        // parentNode削除: 事業は独立ノード
         draggable: true,
         selectable: true
       })
     })
     
-    // 業務ノード - 事業ノードまたはレイヤー内に配置
+    // 業務ノード - 必ず事業ノード内に配置
     tasks.forEach((task, index) => {
-      const parentId = task.business_id ? `business-${task.business_id}` : `layer-${task.layer_id}`
+      if (!task.business_id) {
+        console.error('Task without business_id found:', task.id, task.name)
+        return // 業務は必ずbusiness_idを持つべき
+      }
+      const parentId = `business-${task.business_id}`
       
       nodes.push({
         id: `task-${task.id}`,
@@ -215,17 +218,30 @@ export class FlowDataConverter {
           size: { width: 224, height: 100 },
           attribute: (task as any).attribute || 'company' // NULLの場合は'company'として扱う
         },
-        parentNode: !task.business_id ? `layer-${task.layer_id}` : undefined,
-        extent: !task.business_id ? 'parent' as const : undefined,
+        // parentNode: parentId, // 業務ノードを独立ノードに変更
+        // extent: 'parent' as const,
         draggable: true,
         selectable: true
       })
     })
     
-    // 実行者ノード - レイヤー内に配置
+    // 実行者ノード - 業務ノード内に配置（業務→事業の階層経由）
     executors.forEach((executor, index) => {
+      if (!executor.task_id) {
+        console.error('Executor without task_id found:', executor.id, executor.name)
+        return // 実行者は必ずtask_idを持つべき
+      }
+      
       const task = tasks.find(t => t.id === executor.task_id)
-      const layerId = task?.layer_id
+      if (!task) {
+        console.error('Executor references non-existent task:', executor.task_id)
+        return
+      }
+      
+      if (!task.business_id) {
+        console.error('Executor task without business_id:', task.id, task.name)
+        return
+      }
       
       nodes.push({
         id: `executor-${executor.id}`,
@@ -244,8 +260,8 @@ export class FlowDataConverter {
           size: { width: 192, height: 80 },
           attribute: (executor as any).attribute || 'company' // NULLの場合は'company'として扱う
         },
-        parentNode: layerId ? `layer-${layerId}` : undefined,
-        extent: layerId ? 'parent' as const : undefined,
+        // parentNode: `task-${executor.task_id}`, // 実行者ノードを独立ノードに変更
+        // extent: 'parent' as const,
         draggable: true,
         selectable: true
       })

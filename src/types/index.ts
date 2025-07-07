@@ -31,12 +31,13 @@ export interface Layer {
 
 export interface Business {
   id: string;
-  layer_id: string;
+  company_id: string; // 新構造: 独立ノード
   name: string;
   goal: string;
   responsible_person_id?: string; // メンバーテーブルへの参照（新構造）
   responsible_person: string; // 後方互換性のため残す（将来廃止予定）
   category?: string;
+  attribute?: string; // 属性フィールド
   position_x: number;
   position_y: number;
   created_at: string;
@@ -45,13 +46,13 @@ export interface Business {
 
 export interface Task {
   id: string;
-  business_id?: string;
-  layer_id: string;
+  business_id: string; // 新構造: 必須
   name: string;
   goal: string;
   responsible_person_id?: string; // メンバーテーブルへの参照（新構造）
   responsible_person: string; // 後方互換性のため残す（将来廃止予定）
   group_name?: string;
+  attribute?: string; // 属性フィールド
   position_x: number;
   position_y: number;
   created_at: string;
@@ -63,6 +64,7 @@ export interface Executor {
   task_id: string;
   name: string;
   role: string;
+  attribute?: string; // 属性フィールド
   position_x: number;
   position_y: number;
   created_at: string;

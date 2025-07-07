@@ -46,17 +46,17 @@ export class OrganizationDataService {
         .select('*')
         .eq('company_id', currentUser.company_id)
 
-      // 事業情報を取得
+      // 事業情報を取得（新構造: 独立ノード）
       const { data: businesses } = await supabase
         .from('businesses')
         .select('*')
-        .in('layer_id', layers?.map(l => l.id) || [])
+        .eq('company_id', currentUser.company_id)
 
-      // 業務情報を取得
+      // 業務情報を取得（新構造: business_id必須）
       const { data: tasks } = await supabase
         .from('tasks')
         .select('*')
-        .in('layer_id', layers?.map(l => l.id) || [])
+        .in('business_id', businesses?.map(b => b.id) || [])
 
       // 実行者情報を取得
       const { data: executors } = await supabase

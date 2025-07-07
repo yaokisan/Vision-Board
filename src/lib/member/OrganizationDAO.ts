@@ -417,12 +417,13 @@ export class OrganizationDAO {
   private static convertRowToBusiness(row: any): Business {
     return {
       id: row.id,
-      layer_id: row.layer_id,
+      company_id: row.company_id,
       name: row.name,
       goal: row.goal || '',
       responsible_person_id: row.responsible_person_id,
       responsible_person: row.responsible_person || '',
       category: row.category,
+      attribute: row.attribute,
       position_x: row.position_x,
       position_y: row.position_y,
       created_at: row.created_at,
@@ -437,12 +438,12 @@ export class OrganizationDAO {
     return {
       id: row.id,
       business_id: row.business_id,
-      layer_id: row.layer_id,
       name: row.name,
       goal: row.goal || '',
       responsible_person_id: row.responsible_person_id,
       responsible_person: row.responsible_person || '',
       group_name: row.group_name,
+      attribute: row.attribute,
       position_x: row.position_x,
       position_y: row.position_y,
       created_at: row.created_at,
