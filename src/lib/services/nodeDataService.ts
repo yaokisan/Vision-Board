@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { NodeType } from '@/types/flow'
 import { v4 as uuidv4 } from 'uuid'
+import { EdgeImpactService } from './edgeImpactService'
 
 export interface NodeSaveData {
   nodeType: NodeType
@@ -435,12 +436,13 @@ export class NodeDataService {
   }
 
   /**
-   * エッジをデータベースに保存
+   * エッジをデータベースに保存（business_id影響分析付き）
    */
   static async saveEdge(companyId: string, sourceNodeId: string, targetNodeId: string, edgeData: any): Promise<{ success: boolean; edgeId?: string; error?: string }> {
     try {
       const edgeId = uuidv4()
       
+      // 1. エッジをデータベースに保存
       const { error } = await supabase
         .from('edges')
         .insert({
@@ -462,7 +464,16 @@ export class NodeDataService {
         return { success: false, error: error.message }
       }
 
-      console.log('✅ EDGE SAVED TO DATABASE:', { edgeId, sourceNodeId, targetNodeId })
+      // 2. エッジ作成による影響分析・business_id更新
+      const impactResult = await EdgeImpactService.handleEdgeCreation(sourceNodeId, targetNodeId)
+      if (!impactResult.success) {
+        // エッジ作成の影響処理が失敗した場合、エッジも削除してロールバック
+        await supabase.from('edges').delete().eq('id', edgeId)
+        console.error('❌ Edge impact analysis failed, rolled back edge creation')
+        return { success: false, error: impactResult.error }
+      }
+
+      console.log('✅ EDGE SAVED WITH IMPACT ANALYSIS:', { edgeId, sourceNodeId, targetNodeId })
       return { success: true, edgeId }
     } catch (error) {
       console.error('Edge save exception:', error)
@@ -471,21 +482,41 @@ export class NodeDataService {
   }
 
   /**
-   * エッジをデータベースから削除
+   * エッジをデータベースから削除（business_id影響分析付き）
    */
-  static async deleteEdge(edgeId: string): Promise<{ success: boolean; error?: string }> {
+  static async deleteEdge(edgeId: string, companyId?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      // 1. 削除前にエッジ情報を取得（影響分析用）
+      const { data: edgeData, error: fetchError } = await supabase
         .from('edges')
-        .delete()
+        .select('source_node_id, target_node_id')
         .eq('id', edgeId)
+        .single()
 
-      if (error) {
-        console.error('Edge delete error:', error)
-        return { success: false, error: error.message }
+      if (fetchError) {
+        console.error('Edge fetch error:', fetchError)
+        return { success: false, error: fetchError.message }
       }
 
-      console.log('✅ EDGE DELETED FROM DATABASE:', edgeId)
+      if (!edgeData) {
+        console.error('Edge not found:', edgeId)
+        return { success: false, error: 'Edge not found' }
+      }
+
+      // 2. 影響分析・business_id更新処理
+      const impactResult = await EdgeImpactService.handleEdgeDeletion(
+        edgeId, 
+        edgeData.source_node_id, 
+        edgeData.target_node_id,
+        companyId
+      )
+      
+      if (!impactResult.success) {
+        console.error('❌ Edge deletion impact analysis failed:', impactResult.error)
+        return { success: false, error: impactResult.error }
+      }
+
+      console.log('✅ EDGE DELETED WITH IMPACT ANALYSIS:', edgeId)
       return { success: true }
     } catch (error) {
       console.error('Edge delete exception:', error)
@@ -494,10 +525,28 @@ export class NodeDataService {
   }
 
   /**
-   * エッジを更新（再接続）
+   * エッジを更新（再接続、business_id影響分析付き）
    */
-  static async updateEdge(edgeId: string, newSourceId: string, newTargetId: string): Promise<{ success: boolean; error?: string }> {
+  static async updateEdge(edgeId: string, newSourceId: string, newTargetId: string, companyId?: string): Promise<{ success: boolean; error?: string }> {
     try {
+      // 1. 更新前の古いエッジ情報を取得
+      const { data: oldEdgeData, error: fetchError } = await supabase
+        .from('edges')
+        .select('source_node_id, target_node_id')
+        .eq('id', edgeId)
+        .single()
+
+      if (fetchError) {
+        console.error('Edge fetch error:', fetchError)
+        return { success: false, error: fetchError.message }
+      }
+
+      if (!oldEdgeData) {
+        console.error('Edge not found:', edgeId)
+        return { success: false, error: 'Edge not found' }
+      }
+
+      // 2. エッジを更新
       const { error } = await supabase
         .from('edges')
         .update({
@@ -512,7 +561,29 @@ export class NodeDataService {
         return { success: false, error: error.message }
       }
 
-      console.log('✅ EDGE UPDATED IN DATABASE:', { edgeId, newSourceId, newTargetId })
+      // 3. 再接続による影響分析・business_id更新
+      const impactResult = await EdgeImpactService.handleEdgeReconnection(
+        oldEdgeData.target_node_id,
+        newSourceId,
+        newTargetId,
+        companyId
+      )
+      
+      if (!impactResult.success) {
+        console.error('❌ Edge reconnection impact analysis failed:', impactResult.error)
+        // ロールバック: エッジを元に戻す
+        await supabase
+          .from('edges')
+          .update({
+            source_node_id: oldEdgeData.source_node_id,
+            target_node_id: oldEdgeData.target_node_id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', edgeId)
+        return { success: false, error: impactResult.error }
+      }
+
+      console.log('✅ EDGE UPDATED WITH IMPACT ANALYSIS:', { edgeId, newSourceId, newTargetId })
       return { success: true }
     } catch (error) {
       console.error('Edge update exception:', error)

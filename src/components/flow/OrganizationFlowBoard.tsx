@@ -106,6 +106,8 @@ export default function OrganizationFlowBoard({
   const { getNodes, getViewport } = useReactFlow()
   const [currentZoom, setCurrentZoom] = useState(70)
   const [isMounted, setIsMounted] = useState(false)
+  
+  // 固定エッジ廃止：全エッジがデータベース管理
 
   // クライアントサイドマウント確認
   useEffect(() => {
@@ -178,6 +180,29 @@ export default function OrganizationFlowBoard({
     )
   }, [nodePositions, isMounted, setNodes])
 
+  // データリロード用の関数
+  const reloadData = useCallback(async () => {
+    try {
+      const flowData = await FlowDataConverter.convertToFlowDataWithContainerFilter(
+        companies,
+        positions,
+        layers,
+        businesses,
+        tasks,
+        executors,
+        currentUser.company_id,
+        viewMode,
+        selectedBusinessId
+      )
+      
+      console.log('🔄 RELOADING DATA - Nodes:', flowData.nodes.length, 'Edges:', flowData.edges.length)
+      setNodes(flowData.nodes)
+      setEdges(flowData.edges)
+    } catch (error) {
+      console.error('Data reload error:', error)
+    }
+  }, [companies, positions, layers, businesses, tasks, executors, currentUser.company_id, viewMode, selectedBusinessId, setNodes, setEdges])
+
   // エッジ接続ハンドラー
   const onConnect = useCallback(async (params: Connection) => {
     if (!params.source || !params.target) return
@@ -215,9 +240,7 @@ export default function OrganizationFlowBoard({
     
     console.log('✅ EDGE SAVED SUCCESSFULLY:', saveResult.edgeId)
     
-    // business_id統合完了: 属性継承はbusiness_idベースで自動処理
-    
-    // データベース保存成功後、React Flow状態を更新
+    // React Flow状態更新
     setEdges((eds) => addEdge({
       ...params,
       id: saveResult.edgeId!, // データベースのIDを使用
@@ -227,7 +250,11 @@ export default function OrganizationFlowBoard({
       reconnectable: true,
       deletable: true
     }, eds))
-  }, [setEdges, currentUser.company_id])
+    
+    // 🔄 追加: business_id変更による影響をリアルタイム反映
+    await reloadData()
+    console.log('🔄 Data reloaded after edge creation')
+  }, [setEdges, currentUser.company_id, reloadData])
 
   // ノード移動保存ハンドラー
   const onNodeDragStop = useCallback(
@@ -660,7 +687,8 @@ export default function OrganizationFlowBoard({
     const updateResult = await NodeDataService.updateEdge(
       oldEdge.id,
       newConnection.source,
-      newConnection.target
+      newConnection.target,
+      currentUser.company_id
     )
     
     if (!updateResult.success) {
@@ -673,7 +701,11 @@ export default function OrganizationFlowBoard({
     
     // React Flow状態で更新
     setEdges((els) => reconnectEdge(oldEdge, newConnection, els))
-  }, [setEdges])
+    
+    // 🔄 追加: business_id変更による影響をリアルタイム反映
+    await reloadData()
+    console.log('🔄 Data reloaded after edge reconnection')
+  }, [setEdges, reloadData, currentUser.company_id])
 
   // 接続可能性チェック
   const isValidConnection = useCallback((connection: Connection) => {
@@ -726,25 +758,37 @@ export default function OrganizationFlowBoard({
   // エッジ削除ハンドラー
   const onEdgesDelete = useCallback(async (edgesToDelete: Edge[]) => {
     console.log('🗑️ 接続線を削除:', edgesToDelete)
+    console.log('🗑️ 削除対象エッジの詳細:', edgesToDelete.map(edge => ({ 
+      id: edge.id, 
+      source: edge.source, 
+      target: edge.target,
+      deletable: edge.deletable
+    })))
     
-    // データベースから削除と属性リセット処理
+    // データベースから削除とbusiness_id影響分析処理
+    let hasSuccess = false
     for (const edge of edgesToDelete) {
-      // データベースからエッジを削除
-      const deleteResult = await NodeDataService.deleteEdge(edge.id)
+      // データベースからエッジを削除（business_id影響分析付き）
+      const deleteResult = await NodeDataService.deleteEdge(edge.id, currentUser.company_id)
       if (!deleteResult.success) {
         console.error('❌ EDGE DELETE FAILED:', edge.id, deleteResult.error)
         // TODO: ユーザーにエラー表示
         continue
       } else {
-        console.log('✅ EDGE DELETED SUCCESSFULLY:', edge.id)
+        console.log('✅ EDGE DELETED WITH IMPACT ANALYSIS:', edge.id)
+        hasSuccess = true
       }
-      
-      // business_id統合完了: エッジ削除時の特別処理は不要
     }
     
-    // React Flow状態から削除
-    setEdges((eds) => eds.filter(edge => !edgesToDelete.some(delEdge => delEdge.id === edge.id)))
-  }, [setEdges, setNodes])
+    // 削除成功時：React Flow状態から削除 + データリロード
+    if (hasSuccess) {
+      setEdges((eds) => eds.filter(edge => !edgesToDelete.some(delEdge => delEdge.id === edge.id)))
+      
+      // business_id変更による影響をリアルタイム反映
+      await reloadData()
+      console.log('🔄 Data reloaded after edge deletion')
+    }
+  }, [setEdges, reloadData, currentUser.company_id])
 
   // ビューポート変更ハンドラー（ズーム率表示用）
   const onMove = useCallback(() => {
@@ -808,7 +852,25 @@ export default function OrganizationFlowBoard({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onEdgesChange={(changes) => {
+          console.log('🔄 EDGES CHANGE:', changes)
+          
+          // 削除イベントを検出して手動でonEdgesDeleteを呼び出す
+          const removeChanges = changes.filter(change => change.type === 'remove')
+          if (removeChanges.length > 0) {
+            console.log('🗑️ DETECTED EDGE REMOVAL:', removeChanges)
+            const edgesToDelete = removeChanges.map(change => 
+              edges.find(edge => edge.id === change.id)
+            ).filter(Boolean) as Edge[]
+            
+            if (edgesToDelete.length > 0) {
+              // 非同期でonEdgesDeleteを実行
+              onEdgesDelete(edgesToDelete)
+            }
+          }
+          
+          onEdgesChange(changes)
+        }}
         onConnect={onConnect}
         onReconnect={onReconnect}
         onReconnectStart={onReconnectStart}
@@ -819,7 +881,10 @@ export default function OrganizationFlowBoard({
         onDrop={onDrop}
         onDragOver={onDragOver}
         onMove={onMove}
-        deleteKeyCode="Delete"
+        deleteKeyCode={["Delete", "Backspace"]}
+        onKeyDown={(event) => {
+          console.log('🎹 KEY PRESSED:', event.key, event.code)
+        }}
         fitView
         fitViewOptions={{ padding: 0.1, maxZoom: 0.7 }}
         defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
