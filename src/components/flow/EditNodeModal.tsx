@@ -40,6 +40,7 @@ export default function EditNodeModal({
     type: '',
     color: '',
     attribute: 'company',
+    business_id: null as string | null, // business_id統合用
     task_id: null as string | null
   })
 
@@ -65,6 +66,7 @@ export default function EditNodeModal({
           const validValues = ['company', ...businesses.map(b => b.id)]
           return validValues.includes(attributeValue) ? attributeValue : 'company'
         })(),
+        business_id: entity.business_id || data.business_id || null, // business_id統合用
         task_id: entity.task_id || data.task_id || null
       })
     }
@@ -112,6 +114,26 @@ export default function EditNodeModal({
           console.error('❌ Failed to sync executor attribute:', syncResult.error)
         }
       }
+    }
+    
+    // business_id統合: Task編集時のバリデーション
+    if (nodeData.type === NodeType.TASK) {
+      // business_idが空文字の場合はnullに変換
+      if (formData.business_id === '') {
+        formData.business_id = null
+      }
+      
+      // 移行期間中: business_idとattributeを同期
+      if (formData.business_id) {
+        formData.attribute = formData.business_id
+      } else {
+        formData.attribute = 'company'
+      }
+      
+      console.log('💾 Task update with business_id:', {
+        business_id: formData.business_id,
+        attribute: formData.attribute
+      })
     }
     
     onSave(nodeData.id, formData)
@@ -307,6 +329,25 @@ export default function EditNodeModal({
               />
               <p className="text-xs text-gray-500 mt-1">
                 この業務の責任者を選択してください
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">所属事業</label>
+              <select
+                value={formData.business_id || ''}
+                onChange={(e) => setFormData({ ...formData, business_id: e.target.value || null })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                required
+              >
+                <option value="">会社直属（所属事業なし）</option>
+                {getAvailableBusinesses().map((business: { id: string; name: string }) => (
+                  <option key={business.id} value={business.id}>
+                    {business.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                この業務が所属する事業を選択してください
               </p>
             </div>
             {renderAttributeField()}

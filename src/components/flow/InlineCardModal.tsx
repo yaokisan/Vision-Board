@@ -27,7 +27,8 @@ export default function InlineCardModal({
     role: '',
     title: '',
     description: '',
-    color: 'green'
+    color: 'green',
+    business_id: null as string | null // business_id統合用
   })
 
   if (!isOpen) return null
@@ -62,7 +63,8 @@ export default function InlineCardModal({
       role: '',
       title: '',
       description: '',
-      color: 'green'
+      color: 'green',
+      business_id: null
     })
   }
 

@@ -270,15 +270,21 @@ export default function OrganizationFlowBoard({
     [onNodePositionUpdate]
   )
 
-  // 現在のタブコンテキストに基づいて適切な属性を取得
-  const getCurrentAttribute = useCallback(() => {
+  // business_id統合: 現在のタブコンテキストに基づいて適切なbusiness_idを取得
+  const getCurrentBusinessId = useCallback(() => {
     // 事業ビューで特定の事業が選択されている場合、その事業IDを返す
     if (viewMode === 'business' && selectedBusinessId) {
       return selectedBusinessId
     }
-    // それ以外の場合は会社属性
-    return 'company'
+    // それ以外の場合は会社レベル（nullを返す）
+    return null
   }, [viewMode, selectedBusinessId])
+
+  // 移行期間用: 既存のgetCurrentAttribute関数を維持（後で削除予定）
+  const getCurrentAttribute = useCallback(() => {
+    const businessId = getCurrentBusinessId()
+    return businessId || 'company'
+  }, [getCurrentBusinessId])
 
   // ノード追加ハンドラー
   const handleAddNode = useCallback(
@@ -287,8 +293,12 @@ export default function OrganizationFlowBoard({
       let finalNodeType = nodeType
       let finalData = { ...nodeData }
       
-      // 現在のタブコンテキストに基づいて属性を自動設定
+      // business_id統合: 現在のタブコンテキストに基づいて自動設定
+      const currentBusinessId = getCurrentBusinessId()
       const currentAttribute = getCurrentAttribute()
+      
+      // business_idを設定（移行期間中は並行設定）
+      finalData.business_id = finalData.business_id || currentBusinessId
       finalData.attribute = finalData.attribute || currentAttribute
       
       // 事業ノードの場合は特別な処理（後でIDが決まった時に自分自身のIDに設定される）
@@ -297,7 +307,11 @@ export default function OrganizationFlowBoard({
         console.log('🏢 BUSINESS NODE: attribute will be set to its own ID after save')
       }
       
-      console.log('🏷️ AUTO-ASSIGNED ATTRIBUTE:', currentAttribute, 'for node type:', finalNodeType)
+      console.log('🏷️ AUTO-ASSIGNED:', {
+        business_id: currentBusinessId,
+        attribute: currentAttribute,
+        nodeType: finalNodeType
+      })
       
       // コンテナタイプの処理
       if (nodeType === 'container' as NodeType) {

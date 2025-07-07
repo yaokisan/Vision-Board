@@ -347,7 +347,8 @@ export class NodeDataService {
               responsible_person: updatedData.responsible_person,
               responsible_person_id: updatedData.responsible_person_id,
               group_name: updatedData.group_name,
-              attribute: updatedData.attribute,
+              business_id: updatedData.business_id, // business_id統合用
+              attribute: updatedData.attribute, // 移行期間中並行設定
               updated_at: timestamp
             })
             .eq('id', id)
