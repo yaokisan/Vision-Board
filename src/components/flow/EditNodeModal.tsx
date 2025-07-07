@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { NodeType } from '@/types/flow'
 import { Member } from '@/types'
 import { MemberSelector } from './MemberSelector'
+import { NodeDataService } from '@/lib/services/nodeDataService'
 
 interface EditNodeModalProps {
   isOpen: boolean
@@ -13,6 +14,7 @@ interface EditNodeModalProps {
   members: Member[]
   currentUser: Member
   businesses?: any[] // 事業リストを追加
+  tasks?: any[] // 業務リストを追加
 }
 
 export default function EditNodeModal({ 
@@ -22,7 +24,8 @@ export default function EditNodeModal({
   nodeData,
   members,
   currentUser,
-  businesses = []
+  businesses = [],
+  tasks = []
 }: EditNodeModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -36,7 +39,8 @@ export default function EditNodeModal({
     description: '',
     type: '',
     color: '',
-    attribute: 'company'
+    attribute: 'company',
+    task_id: null as string | null
   })
 
   useEffect(() => {
@@ -60,7 +64,8 @@ export default function EditNodeModal({
           // 有効な値かチェック（会社または実際の事業ID）
           const validValues = ['company', ...businesses.map(b => b.id)]
           return validValues.includes(attributeValue) ? attributeValue : 'company'
-        })()
+        })(),
+        task_id: entity.task_id || data.task_id || null
       })
     }
   }, [nodeData, businesses])
@@ -81,8 +86,34 @@ export default function EditNodeModal({
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 利用可能な業務リストを取得
+  const getAvailableTasks = () => {
+    return tasks.map(task => ({
+      id: task.id,
+      name: task.name
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // 実行者の場合、task_idが変更されたら属性を自動同期
+    if (nodeData.type === NodeType.EXECUTOR && formData.task_id) {
+      const originalTaskId = nodeData.data.entity.task_id
+      if (originalTaskId !== formData.task_id) {
+        console.log('🔄 Task ID changed, syncing executor attribute...')
+        const syncResult = await NodeDataService.syncExecutorAttributeWithTask(
+          nodeData.data.entity.id,
+          formData.task_id
+        )
+        if (syncResult.success) {
+          console.log('✅ Executor attribute synced successfully')
+        } else {
+          console.error('❌ Failed to sync executor attribute:', syncResult.error)
+        }
+      }
+    }
+    
     onSave(nodeData.id, formData)
     onClose()
   }
@@ -97,6 +128,46 @@ export default function EditNodeModal({
       case 'executor': return '実行者'
       default: return 'ノード'
     }
+  }
+
+  // 共通の属性選択フィールド
+  const renderAttributeField = () => {
+    const availableBusinesses = getAvailableBusinesses()
+    
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
+        <div className="space-y-2">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="attribute"
+              value="company"
+              checked={formData.attribute === 'company'}
+              onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">会社</span>
+          </label>
+          {availableBusinesses.map((business: { id: string; name: string }) => (
+            <label key={business.id} className="flex items-center">
+              <input
+                type="radio"
+                name="attribute"
+                value={business.id}
+                checked={formData.attribute === business.id}
+                onChange={(e) => setFormData({ ...formData, attribute: e.target.value })}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700">{business.name}</span>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          このノードの所属属性を選択してください
+        </p>
+      </div>
+    )
   }
 
   const renderFormFields = () => {
@@ -140,6 +211,7 @@ export default function EditNodeModal({
                 この役職を担当するメンバーを選択してください
               </p>
             </div>
+            {renderAttributeField()}
           </>
         )
       
@@ -188,6 +260,7 @@ export default function EditNodeModal({
                 この事業の責任者を選択してください
               </p>
             </div>
+            {renderAttributeField()}
           </>
         )
       
@@ -236,10 +309,12 @@ export default function EditNodeModal({
                 この業務の責任者を選択してください
               </p>
             </div>
+            {renderAttributeField()}
           </>
         )
       
       case NodeType.EXECUTOR:
+        const availableTasks = getAvailableTasks()
         return (
           <>
             <div>
@@ -263,6 +338,25 @@ export default function EditNodeModal({
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">所属業務</label>
+              <select
+                value={formData.task_id || ''}
+                onChange={(e) => setFormData({ ...formData, task_id: e.target.value || null })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              >
+                <option value="">業務を選択...</option>
+                {availableTasks.map((task) => (
+                  <option key={task.id} value={task.id}>
+                    {task.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                この実行者が所属する業務を選択してください。変更すると属性が自動的に同期されます。
+              </p>
+            </div>
+            {renderAttributeField()}
           </>
         )
       
@@ -385,6 +479,7 @@ export default function EditNodeModal({
                 required
               />
             </div>
+            {renderAttributeField()}
           </>
         )
     }

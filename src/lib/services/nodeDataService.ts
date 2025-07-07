@@ -54,6 +54,7 @@ export class NodeDataService {
         company_id: nodeData.companyId,
         name: nodeData.data.name || 'New Position',
         person_name: nodeData.data.person_name || '',
+        attribute: nodeData.data.attribute === 'company' ? null : nodeData.data.attribute,
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -84,6 +85,9 @@ export class NodeDataService {
       layerId = defaultLayerResult.layerId!
     }
     
+    // 事業ノードの属性は自分自身のIDに設定（事業属性を作成）
+    const businessAttribute = nodeId // 事業ノードは常に自分自身のIDを属性にする
+    
     const { error } = await supabase
       .from('businesses')
       .insert({
@@ -93,6 +97,7 @@ export class NodeDataService {
         goal: nodeData.data.goal || '',
         responsible_person: nodeData.data.responsible_person || '',
         category: nodeData.data.category || '',
+        attribute: businessAttribute,
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -133,6 +138,7 @@ export class NodeDataService {
         goal: nodeData.data.goal || '',
         responsible_person: nodeData.data.responsible_person || '',
         group_name: nodeData.data.group_name || '',
+        attribute: nodeData.data.attribute === 'company' ? null : nodeData.data.attribute,
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -161,6 +167,7 @@ export class NodeDataService {
         task_id: taskId,
         name: nodeData.data.name || 'New Executor',
         role: nodeData.data.role || '',
+        attribute: nodeData.data.attribute === 'company' ? null : nodeData.data.attribute,
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -186,6 +193,7 @@ export class NodeDataService {
         company_id: nodeData.companyId,
         name: nodeData.data.name || nodeData.data.title || 'New Layer',
         type: nodeData.data.type || 'business',
+        attribute: nodeData.data.attribute === 'company' ? null : nodeData.data.attribute,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -355,6 +363,7 @@ export class NodeDataService {
             .update({
               name: updatedData.name,
               role: updatedData.role,
+              task_id: updatedData.task_id,
               attribute: updatedData.attribute,
               updated_at: timestamp
             })
@@ -520,6 +529,155 @@ export class NodeDataService {
     } catch (error) {
       console.error('Edge update exception:', error)
       return { success: false, error: 'Failed to update edge' }
+    }
+  }
+
+  /**
+   * ノードの属性を取得
+   */
+  static async getNodeAttribute(nodeId: string): Promise<{ success: boolean; attribute?: string | null; error?: string }> {
+    try {
+      const { table, id } = this.parseNodeId(nodeId)
+      
+      if (!table || !id) {
+        return { success: false, error: 'Invalid node ID format' }
+      }
+
+      const { data, error } = await supabase
+        .from(table)
+        .select('attribute')
+        .eq('id', id)
+        .single()
+
+      if (error) {
+        console.error('Get node attribute error:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, attribute: data.attribute }
+    } catch (error) {
+      console.error('Get node attribute exception:', error)
+      return { success: false, error: 'Failed to get node attribute' }
+    }
+  }
+
+  /**
+   * ノードの属性を更新
+   */
+  static async updateNodeAttribute(nodeId: string, attribute: string | null): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { table, id } = this.parseNodeId(nodeId)
+      
+      if (!table || !id) {
+        return { success: false, error: 'Invalid node ID format' }
+      }
+
+      const timestamp = new Date().toISOString()
+
+      const { error } = await supabase
+        .from(table)
+        .update({
+          attribute: attribute,
+          updated_at: timestamp
+        })
+        .eq('id', id)
+
+      if (error) {
+        console.error('Update node attribute error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ NODE ATTRIBUTE UPDATED:', { nodeId, attribute })
+      return { success: true }
+    } catch (error) {
+      console.error('Update node attribute exception:', error)
+      return { success: false, error: 'Failed to update node attribute' }
+    }
+  }
+
+  /**
+   * エッジ作成時の属性継承処理
+   */
+  static async inheritAttributeFromParent(sourceNodeId: string, targetNodeId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('🔗 INHERITING ATTRIBUTE:', { sourceNodeId, targetNodeId })
+      
+      // 親ノードの属性を取得
+      const parentResult = await this.getNodeAttribute(sourceNodeId)
+      if (!parentResult.success) {
+        return { success: false, error: `Failed to get parent attribute: ${parentResult.error}` }
+      }
+
+      // 子ノードの属性を更新
+      const updateResult = await this.updateNodeAttribute(targetNodeId, parentResult.attribute)
+      if (!updateResult.success) {
+        return { success: false, error: `Failed to update child attribute: ${updateResult.error}` }
+      }
+
+      console.log('✅ ATTRIBUTE INHERITED:', { 
+        parent: sourceNodeId, 
+        child: targetNodeId, 
+        attribute: parentResult.attribute 
+      })
+      
+      return { success: true }
+    } catch (error) {
+      console.error('Inherit attribute exception:', error)
+      return { success: false, error: 'Failed to inherit attribute' }
+    }
+  }
+
+  /**
+   * エッジ削除時の属性リセット処理
+   */
+  static async resetNodeAttributeToCompany(nodeId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('🔄 RESETTING ATTRIBUTE TO COMPANY:', nodeId)
+      
+      const updateResult = await this.updateNodeAttribute(nodeId, null)
+      if (!updateResult.success) {
+        return { success: false, error: `Failed to reset attribute: ${updateResult.error}` }
+      }
+
+      console.log('✅ ATTRIBUTE RESET TO COMPANY:', nodeId)
+      return { success: true }
+    } catch (error) {
+      console.error('Reset attribute exception:', error)
+      return { success: false, error: 'Failed to reset attribute' }
+    }
+  }
+
+  /**
+   * 実行者の属性を親業務と同期
+   */
+  static async syncExecutorAttributeWithTask(executorId: string, taskId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('🔄 SYNCING EXECUTOR ATTRIBUTE:', { executorId, taskId })
+      
+      // 業務ノードの属性を取得
+      const taskNodeId = `task-${taskId}`
+      const taskResult = await this.getNodeAttribute(taskNodeId)
+      if (!taskResult.success) {
+        return { success: false, error: `Failed to get task attribute: ${taskResult.error}` }
+      }
+
+      // 実行者ノードの属性を更新
+      const executorNodeId = `executor-${executorId}`
+      const updateResult = await this.updateNodeAttribute(executorNodeId, taskResult.attribute)
+      if (!updateResult.success) {
+        return { success: false, error: `Failed to update executor attribute: ${updateResult.error}` }
+      }
+
+      console.log('✅ EXECUTOR ATTRIBUTE SYNCED:', { 
+        executor: executorNodeId, 
+        task: taskNodeId, 
+        attribute: taskResult.attribute 
+      })
+      
+      return { success: true }
+    } catch (error) {
+      console.error('Sync executor attribute exception:', error)
+      return { success: false, error: 'Failed to sync executor attribute' }
     }
   }
 }

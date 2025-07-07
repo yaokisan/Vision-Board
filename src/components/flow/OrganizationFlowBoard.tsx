@@ -30,6 +30,7 @@ import {
 } from './nodes'
 import { FlowDataConverter } from '@/lib/flow/dataConverter'
 import { NodeDataService } from '@/lib/services/nodeDataService'
+import { EdgeService } from '@/lib/services/edgeService'
 import AddNodeModal from './AddNodeModal'
 import InlineCardModal from './InlineCardModal'
 import EditNodeModal from './EditNodeModal'
@@ -214,6 +215,37 @@ export default function OrganizationFlowBoard({
     
     console.log('✅ EDGE SAVED SUCCESSFULLY:', saveResult.edgeId)
     
+    // 属性継承処理
+    if (EdgeService.shouldInheritAttribute(params.source, params.target)) {
+      console.log('🔗 ATTEMPTING ATTRIBUTE INHERITANCE:', { source: params.source, target: params.target })
+      
+      const inheritResult = await NodeDataService.inheritAttributeFromParent(params.source, params.target)
+      if (inheritResult.success) {
+        console.log('✅ ATTRIBUTE INHERITED SUCCESSFULLY')
+        
+        // React状態の子ノードの属性を更新
+        const parentAttributeResult = await NodeDataService.getNodeAttribute(params.source)
+        if (parentAttributeResult.success) {
+          setNodes((nds) => 
+            nds.map((node) => {
+              if (node.id === params.target) {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    attribute: parentAttributeResult.attribute || 'company'
+                  }
+                }
+              }
+              return node
+            })
+          )
+        }
+      } else {
+        console.error('❌ ATTRIBUTE INHERITANCE FAILED:', inheritResult.error)
+      }
+    }
+    
     // データベース保存成功後、React Flow状態を更新
     setEdges((eds) => addEdge({
       ...params,
@@ -238,12 +270,34 @@ export default function OrganizationFlowBoard({
     [onNodePositionUpdate]
   )
 
+  // 現在のタブコンテキストに基づいて適切な属性を取得
+  const getCurrentAttribute = useCallback(() => {
+    // 事業ビューで特定の事業が選択されている場合、その事業IDを返す
+    if (viewMode === 'business' && selectedBusinessId) {
+      return selectedBusinessId
+    }
+    // それ以外の場合は会社属性
+    return 'company'
+  }, [viewMode, selectedBusinessId])
+
   // ノード追加ハンドラー
   const handleAddNode = useCallback(
     async (nodeType: NodeType, nodeData: any) => {
       console.log('🟠 HANDLE ADD NODE CALLED:', { nodeType, nodeData })
       let finalNodeType = nodeType
       let finalData = { ...nodeData }
+      
+      // 現在のタブコンテキストに基づいて属性を自動設定
+      const currentAttribute = getCurrentAttribute()
+      finalData.attribute = finalData.attribute || currentAttribute
+      
+      // 事業ノードの場合は特別な処理（後でIDが決まった時に自分自身のIDに設定される）
+      if (finalNodeType === NodeType.BUSINESS) {
+        // NodeDataServiceで後処理されるため、ここでは現在の属性を設定
+        console.log('🏢 BUSINESS NODE: attribute will be set to its own ID after save')
+      }
+      
+      console.log('🏷️ AUTO-ASSIGNED ATTRIBUTE:', currentAttribute, 'for node type:', finalNodeType)
       
       // コンテナタイプの処理
       if (nodeType === 'container' as NodeType) {
@@ -252,7 +306,8 @@ export default function OrganizationFlowBoard({
           ...nodeData,
           label: nodeData.title || 'New Container',
           type: nodeData.color === 'purple' ? 'management' : 'business',
-          containerSize: { width: 500, height: 400 }
+          containerSize: { width: 500, height: 400 },
+          attribute: finalData.attribute // 属性を保持
         }
       }
 
@@ -317,7 +372,7 @@ export default function OrganizationFlowBoard({
         setEdges((eds) => [...eds, newEdge])
       }
     },
-    [selectedParentNode, setNodes, setEdges, currentUser.company_id]
+    [selectedParentNode, setNodes, setEdges, currentUser.company_id, getCurrentAttribute]
   )
 
   // コンテナクリックでノード追加モーダルを開く
@@ -514,9 +569,13 @@ export default function OrganizationFlowBoard({
   const handleNodeDrop = useCallback(async (nodeType: NodeType, position: { x: number, y: number }) => {
     console.log('🎯 DRAG DROP NODE:', { nodeType, position })
     
+    // 現在のタブコンテキストに基づいて属性を自動設定
+    const currentAttribute = getCurrentAttribute()
+    
     // デフォルトデータを準備
     const defaultData = {
       name: getDefaultNodeLabel(nodeType),
+      attribute: currentAttribute, // 属性を自動設定
       ...(nodeType === NodeType.CXO && { person_name: '' }),
       ...(nodeType === NodeType.BUSINESS && { goal: '', responsible_person: '' }),
       ...(nodeType === NodeType.TASK && { goal: '', responsible_person: '' }),
@@ -526,6 +585,8 @@ export default function OrganizationFlowBoard({
         title: getDefaultNodeLabel(nodeType)
       })
     }
+    
+    console.log('🏷️ DRAG-DROP AUTO-ASSIGNED ATTRIBUTE:', currentAttribute, 'for node type:', nodeType)
 
     // データベースに保存
     console.log('💾 SAVING DRAG-DROPPED NODE TO DATABASE:', { nodeType, defaultData, position })
@@ -563,7 +624,7 @@ export default function OrganizationFlowBoard({
     }
     
     setNodes((nds) => [...nds, newNode])
-  }, [setNodes, currentUser.company_id])
+  }, [setNodes, currentUser.company_id, getCurrentAttribute])
 
   // デフォルトノードラベルを取得
   const getDefaultNodeLabel = (nodeType: NodeType): string => {
@@ -689,20 +750,50 @@ export default function OrganizationFlowBoard({
   const onEdgesDelete = useCallback(async (edgesToDelete: Edge[]) => {
     console.log('🗑️ 接続線を削除:', edgesToDelete)
     
-    // データベースから削除
+    // データベースから削除と属性リセット処理
     for (const edge of edgesToDelete) {
+      // データベースからエッジを削除
       const deleteResult = await NodeDataService.deleteEdge(edge.id)
       if (!deleteResult.success) {
         console.error('❌ EDGE DELETE FAILED:', edge.id, deleteResult.error)
         // TODO: ユーザーにエラー表示
+        continue
       } else {
         console.log('✅ EDGE DELETED SUCCESSFULLY:', edge.id)
+      }
+      
+      // 属性継承対象のエッジだった場合、子ノードの属性をリセット
+      if (EdgeService.shouldInheritAttribute(edge.source, edge.target)) {
+        console.log('🔄 RESETTING CHILD NODE ATTRIBUTE:', edge.target)
+        
+        const resetResult = await NodeDataService.resetNodeAttributeToCompany(edge.target)
+        if (resetResult.success) {
+          console.log('✅ ATTRIBUTE RESET SUCCESSFULLY')
+          
+          // React状態の子ノードの属性を更新
+          setNodes((nds) => 
+            nds.map((node) => {
+              if (node.id === edge.target) {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    attribute: 'company'
+                  }
+                }
+              }
+              return node
+            })
+          )
+        } else {
+          console.error('❌ ATTRIBUTE RESET FAILED:', resetResult.error)
+        }
       }
     }
     
     // React Flow状態から削除
     setEdges((eds) => eds.filter(edge => !edgesToDelete.some(delEdge => delEdge.id === edge.id)))
-  }, [setEdges])
+  }, [setEdges, setNodes])
 
   // ビューポート変更ハンドラー（ズーム率表示用）
   const onMove = useCallback(() => {
@@ -886,6 +977,7 @@ export default function OrganizationFlowBoard({
         members={members}
         currentUser={currentUser}
         businesses={businesses}
+        tasks={tasks}
       />
 
       {/* 削除確認ポップアップ */}

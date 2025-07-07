@@ -64,7 +64,7 @@ export class FlowDataConverter {
           label: company.name,
           size: { width: 320, height: 120 },
           ceoName: ceo?.person_name,
-          attribute: (company as any).attribute || 'company' // データベースのattributeカラムを使用
+          attribute: (company as any).attribute || 'company' // NULLの場合は'company'として扱う
         },
         draggable: true,
         selectable: true
@@ -106,7 +106,7 @@ export class FlowDataConverter {
             entity: position,
             label: `${position.name}: ${position.person_name}`,
             size: { width: 224, height: 120 },
-            attribute: (position as any).attribute || 'company' // データベースのattributeカラムを使用
+            attribute: (position as any).attribute || 'company' // NULLの場合は'company'として扱う
           },
           parentNode: 'cxo-layer',
           extent: 'parent' as const,
@@ -159,7 +159,7 @@ export class FlowDataConverter {
           label: `${layer.name}レイヤー`,
           type: layer.type as 'business' | 'management',
           containerSize: finalSize,
-          attribute: (layer as any).attribute || 'company', // データベースのattributeカラムを使用
+          attribute: (layer as any).attribute || 'company', // NULLの場合は'company'として扱う
           color: (layer as any).color || 'gray', // データベースのcolorカラムを使用
           description: (layer as any).description || '' // データベースのdescriptionカラムを使用
         },
@@ -185,7 +185,7 @@ export class FlowDataConverter {
           entity: business,
           label: business.name,
           size: { width: 256, height: 160 },
-          attribute: (business as any).attribute || 'company' // データベースのattributeカラムを使用
+          attribute: (business as any).attribute || 'company' // NULLの場合は'company'として扱う
         },
         parentNode: `layer-${business.layer_id}`,
         extent: 'parent' as const,
@@ -213,7 +213,7 @@ export class FlowDataConverter {
           entity: task,
           label: task.name,
           size: { width: 224, height: 100 },
-          attribute: (task as any).attribute || 'company' // データベースのattributeカラムを使用
+          attribute: (task as any).attribute || 'company' // NULLの場合は'company'として扱う
         },
         parentNode: !task.business_id ? `layer-${task.layer_id}` : undefined,
         extent: !task.business_id ? 'parent' as const : undefined,
@@ -242,7 +242,7 @@ export class FlowDataConverter {
           entity: executor,
           label: executor.name,
           size: { width: 192, height: 80 },
-          attribute: (executor as any).attribute || 'company' // データベースのattributeカラムを使用
+          attribute: (executor as any).attribute || 'company' // NULLの場合は'company'として扱う
         },
         parentNode: layerId ? `layer-${layerId}` : undefined,
         extent: layerId ? 'parent' as const : undefined,
