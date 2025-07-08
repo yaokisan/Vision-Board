@@ -41,7 +41,8 @@ export default function CxoFlowNode({ data, onAddNode, onEditNode, onDeleteNode,
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onAddNode?.(data.entity?.id || id || '')
+                const nodeId = `position-${data.entity?.id}`
+                onAddNode?.(nodeId)
               }}
               className="w-6 h-6 bg-purple-500 hover:bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-colors z-50"
               style={{ zIndex: 1000 }}
@@ -52,7 +53,9 @@ export default function CxoFlowNode({ data, onAddNode, onEditNode, onDeleteNode,
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onEditNode?.(data.entity?.id || id || '')
+                const nodeId = `position-${data.entity?.id}`
+                console.log('🎯 CXO EDIT CLICKED:', nodeId)
+                onEditNode?.(nodeId)
               }}
               className="w-6 h-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-colors z-50"
               style={{ zIndex: 1000 }}
@@ -63,7 +66,9 @@ export default function CxoFlowNode({ data, onAddNode, onEditNode, onDeleteNode,
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onDeleteNode?.(data.entity?.id || id || '')
+                const nodeId = `position-${data.entity?.id}`
+                console.log('🎯 CXO DELETE CLICKED:', nodeId)
+                onDeleteNode?.(nodeId)
               }}
               className="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-colors z-50"
               style={{ zIndex: 1000 }}

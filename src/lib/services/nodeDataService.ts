@@ -55,7 +55,7 @@ export class NodeDataService {
         company_id: nodeData.companyId,
         name: nodeData.data.name || 'New Position',
         person_name: nodeData.data.person_name || '',
-        business_id: nodeData.data.business_id,
+        // business_id削除: positionsテーブルには存在しない
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -79,6 +79,7 @@ export class NodeDataService {
       .from('businesses')
       .insert({
         id: nodeId,
+        company_id: nodeData.companyId, // 必須フィールド追加
         // layer_id削除: 事業は独立ノード
         name: nodeData.data.name || 'New Business',
         goal: nodeData.data.goal || '',
@@ -102,18 +103,14 @@ export class NodeDataService {
    * 業務ノード保存（新構造: 必ずbusiness_idを持つ、layer_id削除）
    */
   private static async saveTask(nodeData: NodeSaveData, nodeId: string) {
-    // business_id を親ノードから取得（必須）
+    // ドラッグ&ドロップ時はnullで作成、エッジ接続時にEdgeImpactServiceで自動設定
     const businessId = this.extractBusinessIdFromParent(nodeData.parentNodeId)
-    
-    if (!businessId) {
-      return { success: false, error: 'Task must belong to a business. Parent business not found.' }
-    }
     
     const { error } = await supabase
       .from('tasks')
       .insert({
         id: nodeId,
-        business_id: businessId, // 必須
+        business_id: businessId, // ドラッグ&ドロップ時はnull、エッジ接続後に自動設定
         // layer_id削除: 業務は必ず事業に属する
         name: nodeData.data.name || 'New Task',
         goal: nodeData.data.goal || '',
@@ -144,10 +141,10 @@ export class NodeDataService {
       .from('executors')
       .insert({
         id: nodeId,
-        task_id: taskId,
+        task_id: taskId, // ドラッグ&ドロップ時はnull、エッジ接続後に設定
         name: nodeData.data.name || 'New Executor',
         role: nodeData.data.role || '',
-        business_id: nodeData.data.business_id,
+        business_id: null, // ドラッグ&ドロップ時はnull、エッジ接続後にEdgeImpactServiceで設定
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -173,7 +170,7 @@ export class NodeDataService {
         company_id: nodeData.companyId,
         name: nodeData.data.name || nodeData.data.title || 'New Layer',
         type: nodeData.data.type || 'business',
-        business_id: nodeData.data.business_id,
+        // business_id削除: layersテーブルには存在しない
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -440,7 +437,8 @@ export class NodeDataService {
           if (updatedData.type !== undefined) layerUpdateData.type = updatedData.type
           if (updatedData.description !== undefined) layerUpdateData.description = updatedData.description
           if (updatedData.color !== undefined) layerUpdateData.color = updatedData.color
-          if (updatedData.business_id !== undefined) layerUpdateData.business_id = updatedData.business_id
+          // business_id削除: layersテーブルには存在しないカラム
+          // if (updatedData.business_id !== undefined) layerUpdateData.business_id = updatedData.business_id
           if (updatedData.containerSize?.width !== undefined) layerUpdateData.width = updatedData.containerSize.width
           if (updatedData.containerSize?.height !== undefined) layerUpdateData.height = updatedData.containerSize.height
           
@@ -476,6 +474,36 @@ export class NodeDataService {
     } catch (error) {
       console.error('Node update exception:', error)
       return { success: false, error: 'Failed to update node' }
+    }
+  }
+
+  /**
+   * ノード削除
+   */
+  static async deleteNode(nodeId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { table, id } = this.parseNodeId(nodeId)
+      if (!table || !id) {
+        return { success: false, error: 'Invalid node ID format' }
+      }
+
+      console.log('🗑️ DELETING NODE:', { table, id, nodeId })
+
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('Node deletion error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ NODE DELETED FROM DATABASE:', { table, id })
+      return { success: true }
+    } catch (error) {
+      console.error('Node deletion exception:', error)
+      return { success: false, error: 'Failed to delete node' }
     }
   }
 

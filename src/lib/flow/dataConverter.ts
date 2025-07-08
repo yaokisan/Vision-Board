@@ -78,22 +78,22 @@ export class FlowDataConverter {
       })
     })
     
-    // CXOレイヤーコンテナ
-    if (positions.some(p => p.name !== 'CEO')) {
-      nodes.push({
-        id: 'cxo-layer',
-        type: NodeType.CXO_LAYER,
-        position: { x: 200, y: 250 },
-        data: {
-          entity: { id: 'cxo-layer', name: 'CXOレイヤー' },
-          label: 'CXOレイヤー',
-          containerSize: { width: 800, height: 200 },
-          business_id: null // CXOレイヤーは会社レベル
-        },
-        draggable: true,
-        selectable: true
-      })
-    }
+    // CXOレイヤーコンテナ - 自動生成を無効化（ダミーデータ問題回避）
+    // if (positions.some(p => p.name !== 'CEO')) {
+    //   nodes.push({
+    //     id: 'cxo-layer',
+    //     type: NodeType.CXO_LAYER,
+    //     position: { x: 200, y: 250 },
+    //     data: {
+    //       entity: { id: 'cxo-layer', name: 'CXOレイヤー' },
+    //       label: 'CXOレイヤー',
+    //       containerSize: { width: 800, height: 200 },
+    //       business_id: null // CXOレイヤーは会社レベル
+    //     },
+    //     draggable: true,
+    //     selectable: true
+    //   })
+    // }
     
     // 役職ノード（CXO）- CXOレイヤー内に配置
     positions.forEach((position, index) => {
@@ -163,7 +163,7 @@ export class FlowDataConverter {
         position: finalPosition,
         data: {
           entity: layer,
-          label: `${layer.name}レイヤー`,
+          label: layer.name,
           type: layer.type as 'business' | 'management',
           containerSize: finalSize,
           business_id: (layer as any).business_id || null, // レイヤーのbusiness_id

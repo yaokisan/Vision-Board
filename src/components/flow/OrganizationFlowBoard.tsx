@@ -251,9 +251,9 @@ export default function OrganizationFlowBoard({
       deletable: true
     }, eds))
     
-    // 🔄 追加: business_id変更による影響をリアルタイム反映
-    await reloadData()
-    console.log('🔄 Data reloaded after edge creation')
+    // 🔄 一時的に無効化: エッジ作成直後のリロードがノード消失を引き起こす
+    // await reloadData()
+    console.log('🔄 Edge creation completed, reloadData temporarily disabled to prevent node deletion')
   }, [setEdges, currentUser.company_id, reloadData])
 
   // ノード移動保存ハンドラー
@@ -555,9 +555,23 @@ export default function OrganizationFlowBoard({
   )
 
   // 削除確認ハンドラー
-  const handleConfirmDelete = useCallback(() => {
+  const handleConfirmDelete = useCallback(async () => {
     const { nodeId } = deleteConfirm
-    // ノードを削除
+    
+    console.log('🗑️ DELETING NODE:', nodeId)
+    
+    // データベースから削除
+    const deleteResult = await NodeDataService.deleteNode(nodeId)
+    
+    if (!deleteResult.success) {
+      console.error('❌ NODE DELETE FAILED:', deleteResult.error)
+      // TODO: ユーザーにエラー表示
+      return
+    }
+    
+    console.log('✅ NODE DELETED SUCCESSFULLY')
+    
+    // React Flow状態から削除
     setNodes((nds) => nds.filter(node => node.id !== nodeId))
     // 関連するエッジを削除
     setEdges((eds) => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId))
