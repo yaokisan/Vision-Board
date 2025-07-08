@@ -18,12 +18,13 @@ export class FlowDataConverter {
     // business_id統合完了: business_idのみ使用
     const containerBusinessId = container.business_id
     
-    // business_idがnullまたは'company'の場合は会社レベル
-    if (!containerBusinessId || containerBusinessId === 'company') {
+    // business_idがnullの場合は会社レベル
+    if (!containerBusinessId) {
       return currentTab === 'company'
     }
     
     // 事業タブでは、該当事業IDのコンテナのみ表示
+    // company_id = business_idの場合は会社レベルとして扱う
     return containerBusinessId === currentTab
   }
   // ノード変換
@@ -33,7 +34,8 @@ export class FlowDataConverter {
     layers: Layer[],
     businesses: Business[],
     tasks: Task[],
-    executors: Executor[]
+    executors: Executor[],
+    companyId: string
   ): FlowNode[] {
     const nodes: FlowNode[] = []
     
@@ -200,13 +202,11 @@ export class FlowDataConverter {
       })
     })
     
-    // 業務ノード - 必ず事業ノード内に配置
+    // 業務ノード - business_idがある場合は事業ノード内、ない場合は独立表示
     tasks.forEach((task, index) => {
-      if (!task.business_id) {
-        console.error('Task without business_id found:', task.id, task.name)
-        return // 業務は必ずbusiness_idを持つべき
-      }
-      const parentId = `business-${task.business_id}`
+      // company_idレベルかどうかを判定（ドラッグ&ドロップ直後）
+      const isCompanyLevel = task.business_id === companyId
+      const parentId = (task.business_id && !isCompanyLevel) ? `business-${task.business_id}` : null
       
       nodes.push({
         id: `task-${task.id}`,
@@ -234,21 +234,15 @@ export class FlowDataConverter {
     
     // 実行者ノード - 業務ノード内に配置（業務→事業の階層経由）
     executors.forEach((executor, index) => {
-      if (!executor.task_id) {
-        console.error('Executor without task_id found:', executor.id, executor.name)
-        return // 実行者は必ずtask_idを持つべき
-      }
-      
-      const task = tasks.find(t => t.id === executor.task_id)
-      if (!task) {
+      const task = executor.task_id ? tasks.find(t => t.id === executor.task_id) : null
+      if (executor.task_id && !task) {
         console.error('Executor references non-existent task:', executor.task_id)
         return
       }
       
-      if (!task.business_id) {
-        console.error('Executor task without business_id:', task.id, task.name)
-        return
-      }
+      // business_idの取得と会社レベル判定
+      const executorBusinessId = task?.business_id || (executor as any).business_id || null
+      const isCompanyLevel = executorBusinessId === companyId
       
       nodes.push({
         id: `executor-${executor.id}`,
@@ -265,7 +259,7 @@ export class FlowDataConverter {
           entity: executor,
           label: executor.name,
           size: { width: 192, height: 80 },
-          business_id: task.business_id // 所属業務の事業ID
+          business_id: executorBusinessId // 所属業務の事業ID（nullも許可）
         },
         // parentNode: `task-${executor.task_id}`, // 実行者ノードを独立ノードに変更
         // extent: 'parent' as const,
@@ -339,7 +333,7 @@ export class FlowDataConverter {
     viewMode: 'company' | 'business' = 'company',
     selectedBusinessId?: string | null
   ): Promise<OrganizationFlowData> {
-    let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors)
+    let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors, companyId)
     let edges = await this.convertToEdges(companies, positions, businesses, tasks, executors, companyId)
     
     // 事業ビューの場合、会社とCXO関連ノードを除外
@@ -353,12 +347,14 @@ export class FlowDataConverter {
       // 特定の事業が選択されている場合、その事業関連のノードのみ表示
       if (selectedBusinessId) {
         // 選択された事業のタスクIDを取得
-        const selectedBusinessTasks = tasks.filter(task => task.business_id === selectedBusinessId)
+        const selectedBusinessTasks = tasks.filter(task => 
+          task.business_id === selectedBusinessId || !task.business_id
+        )
         const selectedBusinessTaskIds = selectedBusinessTasks.map(task => task.id)
         
         // 選択された事業のエクゼキューターIDを取得
         const selectedBusinessExecutors = executors.filter(executor => 
-          selectedBusinessTaskIds.includes(executor.task_id)
+          selectedBusinessTaskIds.includes(executor.task_id) || !executor.task_id
         )
         const selectedBusinessExecutorIds = selectedBusinessExecutors.map(executor => executor.id)
         
@@ -420,7 +416,7 @@ export class FlowDataConverter {
     viewMode: 'company' | 'business' = 'company',
     selectedBusinessId?: string | null
   ): Promise<OrganizationFlowData> {
-    let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors)
+    let nodes = this.convertToNodes(companies, positions, layers, businesses, tasks, executors, companyId)
     let edges = await this.convertToEdges(companies, positions, businesses, tasks, executors, companyId)
     
     // 事業ビューの場合、会社とCXO関連ノードを除外
@@ -434,12 +430,14 @@ export class FlowDataConverter {
       // 特定の事業が選択されている場合、その事業関連のノードのみ表示
       if (selectedBusinessId) {
         // 選択された事業のタスクIDを取得
-        const selectedBusinessTasks = tasks.filter(task => task.business_id === selectedBusinessId)
+        const selectedBusinessTasks = tasks.filter(task => 
+          task.business_id === selectedBusinessId || !task.business_id
+        )
         const selectedBusinessTaskIds = selectedBusinessTasks.map(task => task.id)
         
         // 選択された事業のエクゼキューターIDを取得
         const selectedBusinessExecutors = executors.filter(executor => 
-          selectedBusinessTaskIds.includes(executor.task_id)
+          selectedBusinessTaskIds.includes(executor.task_id) || !executor.task_id
         )
         const selectedBusinessExecutorIds = selectedBusinessExecutors.map(executor => executor.id)
         
@@ -476,9 +474,7 @@ export class FlowDataConverter {
           }
           
           // つながっているノードを表示
-          if (connectedNodeIds.has(node.id)) return true
-          
-          return false
+          return connectedNodeIds.has(node.id)
         })
       }
       

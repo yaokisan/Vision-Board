@@ -110,7 +110,7 @@ export class NodeDataService {
       .from('tasks')
       .insert({
         id: nodeId,
-        business_id: businessId, // ドラッグ&ドロップ時はnull、エッジ接続後に自動設定
+        business_id: businessId, // ドラッグ&ドロップ時はcompany_id、エッジ接続後に事業IDに更新
         // layer_id削除: 業務は必ず事業に属する
         name: nodeData.data.name || 'New Task',
         goal: nodeData.data.goal || '',

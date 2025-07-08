@@ -52,17 +52,49 @@ export class OrganizationDataService {
         .select('*')
         .eq('company_id', currentUser.company_id)
 
-      // 業務情報を取得（新構造: business_id必須）
-      const { data: tasks } = await supabase
+      // 業務情報を取得（business_id=nullのドラッグ&ドロップタスクも含める）
+      const businessIds = businesses?.map(b => b.id) || []
+      let tasksData: Task[] = []
+      
+      if (businessIds.length > 0) {
+        // 事業に紐づくタスクを取得
+        const { data: businessTasks } = await supabase
+          .from('tasks')
+          .select('*')
+          .in('business_id', businessIds)
+        tasksData = [...(businessTasks || [])]
+      }
+      
+      // business_id=nullのタスクを取得
+      const { data: nullTasks } = await supabase
         .from('tasks')
         .select('*')
-        .in('business_id', businesses?.map(b => b.id) || [])
+        .is('business_id', null)
+      
+      tasksData = [...tasksData, ...(nullTasks || [])]
+      const tasks = tasksData
 
-      // 実行者情報を取得
-      const { data: executors } = await supabase
+      // 実行者情報を取得（task_id=nullのドラッグ&ドロップ実行者も含める）
+      const taskIds = tasks?.map(t => t.id) || []
+      let executorsData: Executor[] = []
+      
+      if (taskIds.length > 0) {
+        // タスクに紐づく実行者を取得
+        const { data: taskExecutors } = await supabase
+          .from('executors')
+          .select('*')
+          .in('task_id', taskIds)
+        executorsData = [...(taskExecutors || [])]
+      }
+      
+      // task_id=nullの実行者を取得（ドラッグ&ドロップ）
+      const { data: nullExecutors } = await supabase
         .from('executors')
         .select('*')
-        .in('task_id', tasks?.map(t => t.id) || [])
+        .is('task_id', null)
+      
+      executorsData = [...executorsData, ...(nullExecutors || [])]
+      const executors = executorsData
 
       return {
         members: members || [],

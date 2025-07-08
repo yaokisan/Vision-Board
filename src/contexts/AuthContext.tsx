@@ -108,7 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       } else {
         console.log('メンバーデータがnull - 新規ユーザーのため会社とメンバーレコードを作成')
-        await createNewUserCompanyAndMember(user.id, user.email || '')
+        if (user) {
+          await createNewUserCompanyAndMember(user.id, user.email || '')
+        }
       }
     } catch (error) {
       console.error('メンバーデータ読み込み例外エラー:', error)
