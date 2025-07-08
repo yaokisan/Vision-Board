@@ -286,11 +286,23 @@ export default function OrganizationFlowBoard({
       let finalNodeType = nodeType
       let finalData = { ...nodeData }
       
-      // business_id統合完了: 現在のタブコンテキストに基づいて自動設定
-      const currentBusinessId = getCurrentBusinessId()
+      // プラスボタンクリック時の親ノードからbusiness_idを取得
+      let parentBusinessId = null
+      if (selectedParentNode) {
+        // 親ノードが事業ノードの場合
+        if (selectedParentNode.type === NodeType.BUSINESS) {
+          parentBusinessId = selectedParentNode.id.replace('business-', '')
+        }
+        // 親ノードがタスクノードの場合、そのbusiness_idを継承
+        else if (selectedParentNode.type === NodeType.TASK) {
+          const parentNode = nodes.find(n => n.id === selectedParentNode.id)
+          parentBusinessId = parentNode?.data?.entity?.business_id || null
+        }
+      }
       
-      // business_idを設定
-      finalData.business_id = finalData.business_id || currentBusinessId
+      // business_idを設定（親ノードから継承またはタブコンテキスト）
+      const currentBusinessId = getCurrentBusinessId()
+      finalData.business_id = parentBusinessId || finalData.business_id || currentBusinessId
       
       // 事業ノードの場合は特別な処理（後でIDが決まった時に自分自身のIDに設定される）
       if (finalNodeType === NodeType.BUSINESS) {
@@ -298,9 +310,11 @@ export default function OrganizationFlowBoard({
         console.log('🏢 BUSINESS NODE: attribute will be set to its own ID after save')
       }
       
-      console.log('🏷️ AUTO-ASSIGNED business_id:', {
-        business_id: currentBusinessId,
-        nodeType: finalNodeType
+      console.log('🏷️ ASSIGNED business_id:', {
+        parentBusinessId,
+        finalBusinessId: finalData.business_id,
+        nodeType: finalNodeType,
+        selectedParentNode: selectedParentNode?.id
       })
       
       // コンテナタイプの処理
@@ -360,7 +374,7 @@ export default function OrganizationFlowBoard({
 
       setNodes((nds) => [...nds, newNode])
       
-      // 自動接続エッジを追加
+      // 自動接続エッジを追加（データベースとReact Flow状態の両方）
       if (selectedParentNode) {
         const newEdge = {
           id: `${selectedParentNode.id}-${newNode.id}`,
@@ -373,7 +387,19 @@ export default function OrganizationFlowBoard({
           },
           animated: true
         }
+        
+        // エッジをデータベースに保存
+        await NodeDataService.saveEdge({
+          id: newEdge.id,
+          source: newEdge.source,
+          target: newEdge.target,
+          companyId: currentUser.company_id
+        })
+        
+        // React Flow状態に追加
         setEdges((eds) => [...eds, newEdge])
+        
+        console.log('✅ AUTO-CONNECTED EDGE CREATED:', newEdge.id)
       }
     },
     [selectedParentNode, setNodes, setEdges, currentUser.company_id, getCurrentBusinessId]
@@ -993,6 +1019,7 @@ export default function OrganizationFlowBoard({
         onCreateCard={handleInlineCardCreate}
         position={inlineModalPosition}
         parentId={selectedParentNode?.id}
+        currentUser={currentUser}
       />
 
       {/* 編集モーダル */}

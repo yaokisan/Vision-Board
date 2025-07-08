@@ -55,7 +55,7 @@ export class NodeDataService {
         company_id: nodeData.companyId,
         name: nodeData.data.name || 'New Position',
         person_name: nodeData.data.person_name || '',
-        // business_id削除: positionsテーブルには存在しない
+        member_id: nodeData.data.member_id || null,
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -71,19 +71,18 @@ export class NodeDataService {
   }
 
   /**
-   * 事業ノード保存（新構造: 独立ノード、layer_idなし）
+   * 事業ノード保存（実際のスキーマに合わせて修正）
    */
   private static async saveBusiness(nodeData: NodeSaveData, nodeId: string) {
-    
     const { error } = await supabase
       .from('businesses')
       .insert({
         id: nodeId,
-        company_id: nodeData.companyId, // 必須フィールド追加
-        // layer_id削除: 事業は独立ノード
+        company_id: nodeData.companyId, // 実際のスキーマに存在
         name: nodeData.data.name || 'New Business',
         goal: nodeData.data.goal || '',
         responsible_person: nodeData.data.responsible_person || '',
+        responsible_person_id: nodeData.data.responsible_person_id || null,
         category: nodeData.data.category || '',
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
@@ -110,12 +109,12 @@ export class NodeDataService {
       .from('tasks')
       .insert({
         id: nodeId,
-        business_id: businessId, // ドラッグ&ドロップ時はcompany_id、エッジ接続後に事業IDに更新
-        // layer_id削除: 業務は必ず事業に属する
+        business_id: businessId, // 実際のスキーマに存在
         name: nodeData.data.name || 'New Task',
         goal: nodeData.data.goal || '',
         responsible_person: nodeData.data.responsible_person || '',
-        group_name: nodeData.data.group_name || '', // 移行期間用（将来削除予定）
+        responsible_person_id: nodeData.data.responsible_person_id || null,
+        group_name: nodeData.data.group_name || '',
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),
@@ -141,10 +140,10 @@ export class NodeDataService {
       .from('executors')
       .insert({
         id: nodeId,
-        task_id: taskId, // ドラッグ&ドロップ時はnull、エッジ接続後に設定
+        task_id: taskId, // 実際のスキーマに存在
         name: nodeData.data.name || 'New Executor',
         role: nodeData.data.role || '',
-        business_id: null, // ドラッグ&ドロップ時はnull、エッジ接続後にEdgeImpactServiceで設定
+        business_id: this.extractBusinessIdFromParent(nodeData.parentNodeId), // 親ノードからbusiness_idを取得
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
         created_at: new Date().toISOString(),

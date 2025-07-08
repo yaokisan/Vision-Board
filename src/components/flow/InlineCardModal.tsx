@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NodeType } from '@/types/flow'
+import { MemberSelector } from './MemberSelector'
+import { supabase } from '@/lib/supabase/client'
 
 interface InlineCardModalProps {
   isOpen: boolean
@@ -9,6 +11,7 @@ interface InlineCardModalProps {
   onCreateCard: (cardType: string, data: any) => void
   position: { x: number; y: number }
   parentId?: string
+  currentUser: any
 }
 
 export default function InlineCardModal({ 
@@ -16,20 +19,49 @@ export default function InlineCardModal({
   onClose, 
   onCreateCard, 
   position,
-  parentId 
+  parentId,
+  currentUser 
 }: InlineCardModalProps) {
   const [selectedCardType, setSelectedCardType] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     person_name: '',
+    member_id: null as string | null,
     goal: '',
     responsible_person: '',
+    responsible_person_id: null as string | null,
     role: '',
     title: '',
     description: '',
     color: 'green',
     business_id: null as string | null // business_id統合用
   })
+  
+  const [members, setMembers] = useState<any[]>([])
+  
+  // メンバーデータを取得
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!currentUser?.company_id) return
+      
+      const { data, error } = await supabase
+        .from('members')
+        .select('id, name, email')
+        .eq('company_id', currentUser.company_id)
+        .order('name')
+      
+      if (error) {
+        console.error('Failed to fetch members:', error)
+        return
+      }
+      
+      setMembers(data || [])
+    }
+    
+    if (isOpen && currentUser?.company_id) {
+      fetchMembers()
+    }
+  }, [isOpen, currentUser?.company_id])
 
   if (!isOpen) return null
 
@@ -58,8 +90,10 @@ export default function InlineCardModal({
     setFormData({
       name: '',
       person_name: '',
+      member_id: null,
       goal: '',
       responsible_person: '',
+      responsible_person_id: null,
       role: '',
       title: '',
       description: '',
@@ -87,14 +121,19 @@ export default function InlineCardModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">氏名</label>
-              <input
-                type="text"
-                value={formData.person_name}
-                onChange={(e) => setFormData({ ...formData, person_name: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 田中太郎"
-                required
+              <label className="block text-sm font-medium text-gray-700 mb-1">担当者</label>
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.member_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    member_id: memberId,
+                    person_name: selectedMember?.name || ''
+                  })
+                }}
+                placeholder="担当者を選択"
               />
             </div>
           </>
@@ -125,13 +164,18 @@ export default function InlineCardModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">責任者</label>
-              <input
-                type="text"
-                value={formData.responsible_person}
-                onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 佐藤花子"
-                required
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.responsible_person_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    responsible_person_id: memberId,
+                    responsible_person: selectedMember?.name || ''
+                  })
+                }}
+                placeholder="責任者を選択"
               />
             </div>
           </>
@@ -162,13 +206,18 @@ export default function InlineCardModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">責任者</label>
-              <input
-                type="text"
-                value={formData.responsible_person}
-                onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 山田太郎"
-                required
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.responsible_person_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    responsible_person_id: memberId,
+                    responsible_person: selectedMember?.name || ''
+                  })
+                }}
+                placeholder="責任者を選択"
               />
             </div>
           </>
@@ -177,14 +226,19 @@ export default function InlineCardModal({
         return (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">氏名</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 開発者A"
-                required
+              <label className="block text-sm font-medium text-gray-700 mb-1">実行者</label>
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.member_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    member_id: memberId,
+                    name: selectedMember?.name || ''
+                  })
+                }}
+                placeholder="実行者を選択"
               />
             </div>
             <div>
