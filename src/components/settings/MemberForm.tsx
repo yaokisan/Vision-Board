@@ -47,9 +47,8 @@ export function MemberForm({ mode, member, companyId, onSubmit, onCancel }: Memb
       newErrors.name = '名前は必須です'
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'メールアドレスは必須です'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    // メールアドレスは任意、入力されている場合のみバリデーション
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = '有効なメールアドレスを入力してください'
     }
 
@@ -70,8 +69,9 @@ export function MemberForm({ mode, member, companyId, onSubmit, onCancel }: Memb
     try {
       if (mode === 'add') {
         const createData: CreateMemberRequest = {
+          company_id: companyId,
           name: formData.name.trim(),
-          email: formData.email.trim(),
+          email: formData.email.trim() || undefined, // 空文字の場合はundefinedに
           permission: formData.permission as any,
           member_type: formData.member_type as any
         }
@@ -133,7 +133,7 @@ export function MemberForm({ mode, member, companyId, onSubmit, onCancel }: Memb
             {/* メールアドレス */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                メールアドレス
+                メールアドレス <span className="text-gray-400 text-xs">(任意)</span>
               </label>
               <input
                 type="email"
@@ -141,6 +141,7 @@ export function MemberForm({ mode, member, companyId, onSubmit, onCancel }: Memb
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 disabled={mode === 'edit'}
+                placeholder="example@company.com"
                 className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   mode === 'edit' ? 'bg-gray-50 text-gray-500' : ''
                 } ${errors.email ? 'border-red-300' : 'border-gray-300'}`}

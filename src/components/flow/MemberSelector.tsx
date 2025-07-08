@@ -41,7 +41,7 @@ export function MemberSelector({
   // 検索でフィルタリングされたメンバー
   const filteredMembers = members.filter(member =>
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   // ドロップダウン外クリックで閉じる

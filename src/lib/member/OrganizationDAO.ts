@@ -195,7 +195,7 @@ export class OrganizationDAO {
         .from('businesses')
         .select(`
           *,
-          layers!inner(company_id)
+          layers!businesses_layer_id_fkey(company_id)
         `)
         .eq('layers.company_id', companyId)
         .order('created_at', { ascending: true })

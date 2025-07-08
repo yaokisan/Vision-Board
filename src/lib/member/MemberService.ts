@@ -27,7 +27,7 @@ export class MemberService {
       // 1. メンバーを作成
       const member: Member = {
         id: generateId(),
-        company_id: request.company_id || 'default-company',
+        company_id: request.company_id,
         name: request.name,
         email: request.email,
         permission: request.permission,
@@ -75,7 +75,7 @@ export class MemberService {
       // 1. メンバーを作成
       const member: Member = {
         id: generateId(),
-        company_id: request.company_id || 'default-company',
+        company_id: request.company_id,
         name: request.name,
         email: request.email,
         permission: request.permission,
@@ -389,9 +389,3 @@ function generateId(): string {
   return `member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
-// 型の拡張（一時的）
-declare module '@/types' {
-  interface CreateMemberRequest {
-    company_id?: string
-  }
-}

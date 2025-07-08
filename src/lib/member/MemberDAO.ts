@@ -172,12 +172,19 @@ export class MemberDAO {
    */
   static async createMember(member: CreateMemberRequest): Promise<Member | null> {
     try {
-      const memberData: MemberInsert = {
-        company_id: member.company_id || 'default-company',
+      const memberData: any = {
+        company_id: member.company_id,
         name: member.name,
-        email: member.email,
         permission: member.permission,
         member_type: member.member_type
+      }
+      
+      // emailが提供されている場合のみ追加、提供されていない場合は空文字列を設定
+      if (member.email && member.email.trim()) {
+        memberData.email = member.email.trim()
+      } else {
+        // データベースの制約によりemailが必須の場合、空文字列を設定
+        memberData.email = ''
       }
 
       const { data, error } = await supabase
@@ -489,7 +496,7 @@ export class MemberDAO {
       id: row.id,
       company_id: row.company_id,
       name: row.name,
-      email: row.email,
+      email: row.email && row.email.trim() ? row.email : undefined,
       permission: row.permission as any,
       member_type: row.member_type as any,
       created_at: row.created_at,
@@ -498,9 +505,3 @@ export class MemberDAO {
   }
 }
 
-// 型の拡張（一時的）
-declare module '@/types' {
-  interface CreateMemberRequest {
-    company_id?: string
-  }
-}

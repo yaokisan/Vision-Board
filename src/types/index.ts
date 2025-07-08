@@ -87,7 +87,7 @@ export interface Member {
   company_id: string;
   auth_user_id?: string; // Supabase Auth user ID (nullable for backwards compatibility)
   name: string;
-  email: string;
+  email?: string; // オプション化：メールアドレス無しでもメンバー追加可能
   permission: MemberPermission;
   member_type: MemberType;
   created_at: string;
@@ -113,8 +113,9 @@ export interface MemberRole {
 
 /** メンバー作成時のリクエスト */
 export interface CreateMemberRequest {
+  company_id: string;
   name: string;
-  email: string;
+  email?: string; // オプション化：メールアドレス無しでもメンバー追加可能
   permission: MemberPermission;
   member_type: MemberType;
   business_ids?: string[]; // 事業メンバーの場合に指定

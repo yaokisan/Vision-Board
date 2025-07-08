@@ -53,7 +53,7 @@ export function MemberManagement({ currentUser }: MemberManagementProps) {
   // フィルタリングされたメンバー
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.email.toLowerCase().includes(searchTerm.toLowerCase())
+                         (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesPermission = permissionFilter === 'all' || member.permission === permissionFilter
     return matchesSearch && matchesPermission
   })
