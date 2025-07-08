@@ -366,23 +366,38 @@ export class FlowDataConverter {
         selectedBusinessTaskIds.forEach(taskId => connectedNodeIds.add(`task-${taskId}`))
         selectedBusinessExecutorIds.forEach(executorId => connectedNodeIds.add(`executor-${executorId}`))
         
-        // エッジでつながっているノードを追加
+        // エッジでつながっているノードを追加（事業ノードを除く）
         edges.forEach(edge => {
           const sourceNodeId = edge.source
           const targetNodeId = edge.target
           
-          // 選択された事業のノードから接続されているノードを追加
-          if (connectedNodeIds.has(sourceNodeId)) {
+          // 事業ノード同士の接続はフィルタリングで無視（各事業は自分のタブにのみ表示）
+          const isSourceBusiness = sourceNodeId.startsWith('business-')
+          const isTargetBusiness = targetNodeId.startsWith('business-')
+          
+          // 事業ノード同士の接続はスキップ
+          if (isSourceBusiness && isTargetBusiness) {
+            return
+          }
+          
+          // 選択された事業のノードから接続されているノードを追加（事業以外）
+          if (connectedNodeIds.has(sourceNodeId) && !isTargetBusiness) {
             connectedNodeIds.add(targetNodeId)
           }
-          // 選択された事業のノードに接続されているノードを追加  
-          if (connectedNodeIds.has(targetNodeId)) {
+          // 選択された事業のノードに接続されているノードを追加（事業以外）
+          if (connectedNodeIds.has(targetNodeId) && !isSourceBusiness) {
             connectedNodeIds.add(sourceNodeId)
           }
         })
         
         // レイヤーノードとつながっているノードを含めてフィルタリング
         nodes = nodes.filter(node => {
+          // 事業ノードは自分の事業タブにのみ表示
+          if (node.type === 'business') {
+            const nodeBusinessId = node.id.replace('business-', '')
+            return nodeBusinessId === selectedBusinessId
+          }
+          
           // 事業レイヤーは常に表示
           if (node.type === 'business_layer') return true
           
@@ -449,23 +464,38 @@ export class FlowDataConverter {
         selectedBusinessTaskIds.forEach(taskId => connectedNodeIds.add(`task-${taskId}`))
         selectedBusinessExecutorIds.forEach(executorId => connectedNodeIds.add(`executor-${executorId}`))
         
-        // エッジでつながっているノードを追加
+        // エッジでつながっているノードを追加（事業ノードを除く）
         edges.forEach(edge => {
           const sourceNodeId = edge.source
           const targetNodeId = edge.target
           
-          // 選択された事業のノードから接続されているノードを追加
-          if (connectedNodeIds.has(sourceNodeId)) {
+          // 事業ノード同士の接続はフィルタリングで無視（各事業は自分のタブにのみ表示）
+          const isSourceBusiness = sourceNodeId.startsWith('business-')
+          const isTargetBusiness = targetNodeId.startsWith('business-')
+          
+          // 事業ノード同士の接続はスキップ
+          if (isSourceBusiness && isTargetBusiness) {
+            return
+          }
+          
+          // 選択された事業のノードから接続されているノードを追加（事業以外）
+          if (connectedNodeIds.has(sourceNodeId) && !isTargetBusiness) {
             connectedNodeIds.add(targetNodeId)
           }
-          // 選択された事業のノードに接続されているノードを追加  
-          if (connectedNodeIds.has(targetNodeId)) {
+          // 選択された事業のノードに接続されているノードを追加（事業以外）
+          if (connectedNodeIds.has(targetNodeId) && !isSourceBusiness) {
             connectedNodeIds.add(sourceNodeId)
           }
         })
         
         // レイヤーノードとつながっているノードを含めてフィルタリング
         nodes = nodes.filter(node => {
+          // 事業ノードは自分の事業タブにのみ表示
+          if (node.type === 'business') {
+            const nodeBusinessId = node.id.replace('business-', '')
+            return nodeBusinessId === selectedBusinessId
+          }
+          
           // 事業レイヤーはbusiness_id/attributeに基づいてフィルタリング（統合版）
           if (node.type === 'business_layer') {
             return this.shouldShowContainer({
