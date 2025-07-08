@@ -579,6 +579,43 @@ export class NodeDataService {
   }
 
   /**
+   * エッジをデータベースに簡易保存（プラスボタン作成時用）
+   * business_idは既に適切に設定されているためEdgeImpactServiceを呼ばない
+   */
+  static async saveSimpleEdge(companyId: string, sourceNodeId: string, targetNodeId: string, edgeData: any): Promise<{ success: boolean; edgeId?: string; error?: string }> {
+    try {
+      const edgeId = uuidv4()
+      
+      const { error } = await supabase
+        .from('edges')
+        .insert({
+          id: edgeId,
+          company_id: companyId,
+          source_node_id: sourceNodeId,
+          target_node_id: targetNodeId,
+          edge_type: edgeData.type || 'default',
+          style: edgeData.style || { stroke: '#4c6ef5', strokeWidth: 2, strokeDasharray: '2,4' },
+          animated: edgeData.animated !== undefined ? edgeData.animated : true,
+          deletable: edgeData.deletable !== undefined ? edgeData.deletable : true,
+          reconnectable: edgeData.reconnectable !== undefined ? edgeData.reconnectable : true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (error) {
+        console.error('Simple edge save error:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ SIMPLE EDGE SAVED:', { edgeId, sourceNodeId, targetNodeId })
+      return { success: true, edgeId }
+    } catch (error) {
+      console.error('Simple edge save exception:', error)
+      return { success: false, error: 'Failed to save simple edge' }
+    }
+  }
+
+  /**
    * エッジをデータベースから削除（business_id影響分析付き）
    */
   static async deleteEdge(edgeId: string, companyId?: string): Promise<{ success: boolean; error?: string }> {

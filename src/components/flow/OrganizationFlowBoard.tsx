@@ -376,7 +376,8 @@ export default function OrganizationFlowBoard({
       
       // 自動接続エッジを追加（データベースとReact Flow状態の両方）
       if (selectedParentNode) {
-        const newEdge = {
+        // 一時的なIDでエッジを作成
+        const tempEdge = {
           id: `${selectedParentNode.id}-${newNode.id}`,
           source: selectedParentNode.id,
           target: newNode.id,
@@ -388,18 +389,34 @@ export default function OrganizationFlowBoard({
           animated: true
         }
         
-        // エッジをデータベースに保存
-        await NodeDataService.saveEdge({
-          id: newEdge.id,
-          source: newEdge.source,
-          target: newEdge.target,
-          companyId: currentUser.company_id
-        })
+        // エッジをデータベースに保存（簡易版）
+        const edgeResult = await NodeDataService.saveSimpleEdge(
+          currentUser.company_id,
+          tempEdge.source,
+          tempEdge.target,
+          {
+            type: tempEdge.type,
+            style: tempEdge.style,
+            animated: tempEdge.animated
+          }
+        )
+        
+        // データベースで生成されたIDを使用して最終エッジを作成
+        const finalEdge = {
+          ...tempEdge,
+          id: edgeResult.success && edgeResult.edgeId ? edgeResult.edgeId : tempEdge.id
+        }
+        
+        if (!edgeResult.success) {
+          console.error('❌ EDGE SAVE FAILED:', edgeResult.error)
+        } else {
+          console.log('✅ EDGE SAVED TO DATABASE:', edgeResult.edgeId)
+        }
         
         // React Flow状態に追加
-        setEdges((eds) => [...eds, newEdge])
+        setEdges((eds) => [...eds, finalEdge])
         
-        console.log('✅ AUTO-CONNECTED EDGE CREATED:', newEdge.id)
+        console.log('✅ AUTO-CONNECTED EDGE CREATED:', finalEdge.id)
       }
     },
     [selectedParentNode, setNodes, setEdges, currentUser.company_id, getCurrentBusinessId]
