@@ -48,7 +48,7 @@ export default function CompanyFlowNode({ data, onAddNode, onEditNode }: Company
           {/* CEO情報 */}
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-sm text-gray-600 mb-1">CEO</p>
-            <p className="text-lg font-medium text-gray-800">{data.ceoName || '田中太郎'}</p>
+            <p className="text-lg font-medium text-gray-800">{data.ceoName || 'CEO未設定'}</p>
           </div>
         </div>
         
