@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Panel } from '@xyflow/react'
 import { NodeType } from '@/types/flow'
 
@@ -54,6 +54,22 @@ const toolbarItems: ToolbarItem[] = [
 
 export default function NodeToolbar(_: NodeToolbarProps) {
   const [draggedItem, setDraggedItem] = useState<ToolbarItem | null>(null)
+  const [scale, setScale] = useState<number>(1) // スケール（1が初期サイズ）
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizeCorner, setResizeCorner] = useState<string>('') // どのコーナーからリサイズしているか
+  const panelRef = useRef<HTMLDivElement>(null)
+  const resizeRef = useRef<{ 
+    startX: number; 
+    startY: number; 
+    startScale: number;
+    initialWidth: number;
+    initialHeight: number;
+  }>({ startX: 0, startY: 0, startScale: 1, initialWidth: 0, initialHeight: 0 })
+  
+  const MIN_SCALE = 0.33 // 最小スケール（現在の約1/3）
+  const MAX_SCALE = 1 // 最大スケール（現在のサイズ）
+  const BASE_WIDTH = 100 // 基準幅
+  const BASE_HEIGHT = 320 // 基準高さ（概算）
 
   const handleDragStart = useCallback((event: React.DragEvent, item: ToolbarItem) => {
     setDraggedItem(item)
@@ -75,12 +91,113 @@ export default function NodeToolbar(_: NodeToolbarProps) {
     setDraggedItem(null)
   }, [])
 
+  // リサイズ開始
+  const handleResizeStart = useCallback((e: React.MouseEvent, corner: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    setResizeCorner(corner)
+    
+    const rect = panelRef.current?.getBoundingClientRect()
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startScale: scale,
+      initialWidth: rect?.width || BASE_WIDTH,
+      initialHeight: rect?.height || BASE_HEIGHT
+    }
+  }, [scale])
+
+  // リサイズ中の処理
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizeRef.current.startX
+      const deltaY = e.clientY - resizeRef.current.startY
+      
+      // コーナーに応じて適切なデルタを選択
+      let delta = 0
+      switch (resizeCorner) {
+        case 'nw': // 左上
+          delta = Math.min(-deltaX, -deltaY)
+          break
+        case 'ne': // 右上
+          delta = Math.min(deltaX, -deltaY)
+          break
+        case 'sw': // 左下
+          delta = Math.min(-deltaX, deltaY)
+          break
+        case 'se': // 右下
+          delta = Math.min(deltaX, deltaY)
+          break
+      }
+      
+      // スケール計算（縦横比を維持）
+      const scaleDelta = delta / Math.max(resizeRef.current.initialWidth, resizeRef.current.initialHeight)
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, resizeRef.current.startScale + scaleDelta))
+      setScale(newScale)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      setResizeCorner('')
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, resizeCorner])
+
   return (
-    <Panel position="top-left" className="bg-white rounded-lg shadow-lg border border-gray-200 p-3">
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-800 text-center mb-3">
-          ノード追加
-        </h3>
+    <Panel position="top-left" className="relative">
+      <div 
+        ref={panelRef}
+        className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 relative"
+        style={{ 
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          transition: isResizing ? 'none' : 'transform 0.2s ease'
+        }}
+      >
+        {/* 四隅のリサイズハンドル */}
+        {/* 左上 */}
+        <div
+          className={`absolute -top-1 -left-1 w-3 h-3 cursor-nw-resize rounded-full ${
+            isResizing && resizeCorner === 'nw' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
+          } transition-colors`}
+          onMouseDown={(e) => handleResizeStart(e, 'nw')}
+        />
+        {/* 右上 */}
+        <div
+          className={`absolute -top-1 -right-1 w-3 h-3 cursor-ne-resize rounded-full ${
+            isResizing && resizeCorner === 'ne' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
+          } transition-colors`}
+          onMouseDown={(e) => handleResizeStart(e, 'ne')}
+        />
+        {/* 左下 */}
+        <div
+          className={`absolute -bottom-1 -left-1 w-3 h-3 cursor-sw-resize rounded-full ${
+            isResizing && resizeCorner === 'sw' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
+          } transition-colors`}
+          onMouseDown={(e) => handleResizeStart(e, 'sw')}
+        />
+        {/* 右下 */}
+        <div
+          className={`absolute -bottom-1 -right-1 w-3 h-3 cursor-se-resize rounded-full ${
+            isResizing && resizeCorner === 'se' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
+          } transition-colors`}
+          onMouseDown={(e) => handleResizeStart(e, 'se')}
+        />
+        
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-800 text-center mb-3">
+            ノード追加
+          </h3>
         
         {toolbarItems.map((item) => (
           <div
@@ -91,7 +208,7 @@ export default function NodeToolbar(_: NodeToolbarProps) {
             className={`
               group relative cursor-move transition-all duration-200
               ${item.color} text-white
-              rounded-lg p-1.5 min-w-[50px] 
+              rounded-lg p-1.5 min-w-[50px]
               transform hover:scale-105 active:scale-95
               shadow-sm hover:shadow-md
               ${draggedItem?.type === item.type ? 'opacity-50' : ''}
@@ -118,8 +235,8 @@ export default function NodeToolbar(_: NodeToolbarProps) {
             ドラッグしてキャンバスに配置
           </p>
         </div>
+        </div>
       </div>
-      
     </Panel>
   )
 }
