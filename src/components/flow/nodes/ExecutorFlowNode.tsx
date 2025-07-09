@@ -23,7 +23,7 @@ export default function ExecutorFlowNode({ data, onAddNode, onEditNode, onDelete
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-48">
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-64">
         {/* 編集ボタン（左下） */}
         {isHovered && (
           <button
@@ -56,16 +56,16 @@ export default function ExecutorFlowNode({ data, onAddNode, onEditNode, onDelete
         <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-400 rounded-full border-2 border-white shadow-md" />
         
         {/* メインコンテンツ */}
-        <div className="text-center">
+        <div>
           {/* 業務名エリア（白背景） */}
-          <div className="bg-white p-2 rounded-t-xl">
-            <p className="text-xs font-medium text-gray-800">{executor.role}</p>
+          <div className="bg-white p-3 rounded-t-xl text-center">
+            <p className="text-xl font-bold text-gray-800">{executor.role}</p>
           </div>
           
           {/* 担当者・名前エリア（青背景） */}
-          <div className="bg-blue-100 p-2 rounded-b-xl">
-            <p className="text-xs text-blue-600 mb-1">担当者</p>
-            <p className="text-xs font-medium text-blue-800">{executor.name}</p>
+          <div className="bg-blue-100 p-3 rounded-b-xl text-center">
+            <p className="text-base text-blue-600 mb-2 font-semibold">担当者</p>
+            <p className="text-2xl font-bold text-blue-800">{executor.name}</p>
           </div>
         </div>
         

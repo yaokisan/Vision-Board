@@ -23,7 +23,7 @@ export default function BusinessFlowNode({ data, onAddNode, onEditNode, onDelete
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-64">
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-96">
         {/* 編集ボタン（左下） */}
         {isHovered && (
           <button
@@ -57,18 +57,18 @@ export default function BusinessFlowNode({ data, onAddNode, onEditNode, onDelete
         
         {/* メインコンテンツ */}
         <div className="p-4">
-          <h3 className="text-lg font-bold text-gray-800 mb-2">{business.name}</h3>
+          <h3 className="text-3xl font-bold text-gray-800 mb-4 text-left">{business.name}</h3>
           
           {/* 目標 */}
-          <div className="mb-3">
-            <p className="text-sm text-gray-600 mb-1">目標</p>
-            <p className="text-sm text-gray-800">{business.goal}</p>
+          <div className="mb-4">
+            <p className="text-lg text-gray-600 mb-2 font-semibold">目標</p>
+            <p className="text-xl text-gray-800 leading-relaxed font-bold">{business.goal}</p>
           </div>
           
           {/* 責任者 */}
-          <div className="border-2 border-red-200 rounded-lg p-2 bg-red-50">
-            <p className="text-sm text-red-600 mb-1">責任者</p>
-            <p className="text-sm font-medium text-red-800">{business.responsible_person}</p>
+          <div className="border-2 border-red-200 rounded-lg p-3 bg-red-50 text-center">
+            <p className="text-lg text-red-600 mb-2 font-semibold">責任者</p>
+            <p className="text-3xl font-bold text-red-800">{business.responsible_person}</p>
           </div>
         </div>
         

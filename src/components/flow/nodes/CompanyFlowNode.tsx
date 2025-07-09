@@ -21,7 +21,7 @@ export default function CompanyFlowNode({ data, onAddNode, onEditNode }: Company
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-80" style={{ zIndex: 100 }}>
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-[28rem]" style={{ zIndex: 100 }}>
         {/* グラデーションバー */}
         <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-2xl" />
         
@@ -43,12 +43,12 @@ export default function CompanyFlowNode({ data, onAddNode, onEditNode }: Company
 
         {/* メインコンテンツ */}
         <div className="px-6 pb-6 text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-3">{company.name}</h2>
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">{company.name}</h2>
           
           {/* CEO情報 */}
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-sm text-gray-600 mb-1">CEO</p>
-            <p className="text-lg font-medium text-gray-800">{data.ceoName || 'CEO未設定'}</p>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <p className="text-lg text-gray-600 mb-2 font-semibold">CEO</p>
+            <p className="text-3xl font-bold text-gray-800">{data.ceoName || 'CEO未設定'}</p>
           </div>
         </div>
         

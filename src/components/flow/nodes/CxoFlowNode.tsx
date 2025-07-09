@@ -22,14 +22,14 @@ export default function CxoFlowNode({ data, onAddNode, onEditNode, onDeleteNode,
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-56">
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-72">
         {/* 接続ポイント（上部） */}
         <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-400 rounded-full border-2 border-white shadow-md" />
         
         {/* メインコンテンツ */}
-        <div className="p-4 text-center">
-          <h3 className="text-lg font-bold text-gray-800 mb-2">{position?.name || data.ceoName || data.label}</h3>
-          <p className="text-base text-gray-600">{position?.person_name || 'ドラッグ&ドロップで追加されたCXO'}</p>
+        <div className="p-4">
+          <h3 className="text-3xl font-bold text-gray-800 mb-3 text-left">{position?.name || data.ceoName || data.label}</h3>
+          <p className="text-2xl font-bold text-gray-700 text-center">{position?.person_name || 'ドラッグ&ドロップで追加されたCXO'}</p>
         </div>
         
         {/* 接続ポイント（下部） */}

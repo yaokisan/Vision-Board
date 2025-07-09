@@ -23,7 +23,7 @@ export default function TaskFlowNode({ data, onAddNode, onEditNode, onDeleteNode
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-56">
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-200 w-80">
         {/* 編集ボタン（左下） */}
         {isHovered && (
           <button
@@ -57,20 +57,20 @@ export default function TaskFlowNode({ data, onAddNode, onEditNode, onDeleteNode
         
         {/* メインコンテンツ */}
         <div className="p-4">
-          <h3 className="text-base font-bold text-gray-800 mb-2">{task.name}</h3>
+          <h3 className="text-2xl font-bold text-gray-800 mb-4 text-left">{task.name}</h3>
           
           {/* 目標 */}
           {task.goal && (
-            <div className="mb-3">
-              <p className="text-xs text-gray-600 mb-1">目標</p>
-              <p className="text-xs text-gray-800">{task.goal}</p>
+            <div className="mb-4">
+              <p className="text-base text-gray-600 mb-2 font-semibold">目標</p>
+              <p className="text-lg text-gray-800 leading-relaxed font-bold">{task.goal}</p>
             </div>
           )}
           
           {/* 責任者 */}
-          <div className="bg-orange-50 rounded-lg p-2">
-            <p className="text-xs text-orange-600 mb-1">責任者</p>
-            <p className="text-xs font-medium text-orange-800">{task.responsible_person}</p>
+          <div className="bg-orange-50 rounded-lg p-3 text-center">
+            <p className="text-base text-orange-600 mb-2 font-semibold">責任者</p>
+            <p className="text-2xl font-bold text-orange-800">{task.responsible_person}</p>
           </div>
         </div>
         
