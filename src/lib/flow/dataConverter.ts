@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 export class FlowDataConverter {
   // コンテナ表示判定メソッド（business_id統合版）
   static shouldShowContainer(
-    container: { business_id?: string | null; attribute?: string },
+    container: { business_id?: string | null },
     currentTab: 'company' | string
   ): boolean {
     // 会社タブでは全てのコンテナを表示
@@ -15,16 +15,14 @@ export class FlowDataConverter {
       return true
     }
     
-    // business_id統合完了: business_idのみ使用
     const containerBusinessId = container.business_id
     
-    // business_idがnullの場合は会社レベル
+    // business_idがnullの場合は会社レベル（会社タブのみ表示）
     if (!containerBusinessId) {
-      return currentTab === 'company'
+      return false
     }
     
     // 事業タブでは、該当事業IDのコンテナのみ表示
-    // company_id = business_idの場合は会社レベルとして扱う
     return containerBusinessId === currentTab
   }
   // ノード変換

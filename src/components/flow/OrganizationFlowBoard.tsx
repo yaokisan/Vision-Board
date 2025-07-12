@@ -30,6 +30,8 @@ import {
 } from './nodes'
 import { FlowDataConverter } from '@/lib/flow/dataConverter'
 import { NodeDataService } from '@/lib/services/nodeDataService'
+import { EdgeConnectionValidator } from '@/lib/services/edgeConnectionValidator'
+import { BusinessIdUpdater } from '@/lib/services/businessIdUpdater'
 import { EdgeService } from '@/lib/services/edgeService'
 import AddNodeModal from './AddNodeModal'
 import InlineCardModal from './InlineCardModal'
@@ -251,6 +253,18 @@ export default function OrganizationFlowBoard({
   const onConnect = useCallback(async (params: Connection) => {
     if (!params.source || !params.target) return
     
+    // 制約チェック実行
+    const validationResult = EdgeConnectionValidator.validateConnection(
+      params.source,
+      params.target,
+      edges
+    )
+    
+    if (!validationResult.isValid) {
+      console.warn('🚫 EDGE CONNECTION BLOCKED:', validationResult.reason)
+      return // 制約違反の場合は接続を無効化
+    }
+    
     // すべての接続線を青色で統一
     const edgeColor = '#4c6ef5' // 青色
     const strokeWidth = 2
@@ -284,16 +298,34 @@ export default function OrganizationFlowBoard({
     
     console.log('✅ EDGE SAVED SUCCESSFULLY:', saveResult.edgeId)
     
-    // React Flow状態更新
-    setEdges((eds) => addEdge({
+    // 楽観的UI更新：即座にエッジを表示
+    const newEdge = {
       ...params,
       id: saveResult.edgeId!, // データベースのIDを使用
-      type: 'default',
+      type: 'default' as const,
       style: edgeStyle,
       animated: true,
       reconnectable: true,
       deletable: true
-    }, eds))
+    }
+    
+    setEdges((eds) => addEdge(newEdge as any, eds))
+    
+    // バックグラウンドでbusiness_id自動更新処理
+    BusinessIdUpdater.updateBusinessIdOnConnection(params.source, params.target)
+      .then((businessIdResult) => {
+        if (!businessIdResult.success) {
+          console.warn('⚠️ BUSINESS_ID UPDATE FAILED:', businessIdResult.error)
+          // 失敗時のロールバックは不要（エッジ自体は正常）
+        } else if (businessIdResult.updatedNodes && businessIdResult.updatedNodes.length > 0) {
+          console.log('✅ BUSINESS_ID UPDATED:', businessIdResult.updatedNodes)
+          // 成功時は必要に応じてデータリロード
+          // await reloadData() // 必要な場合のみ
+        }
+      })
+      .catch((error) => {
+        console.error('💥 BUSINESS_ID UPDATE EXCEPTION:', error)
+      })
     
     // 🔄 一時的に無効化: エッジ作成直後のリロードがノード消失を引き起こす
     // await reloadData()
@@ -835,7 +867,7 @@ export default function OrganizationFlowBoard({
       [NodeType.CXO_LAYER]: [NodeType.CXO, NodeType.BUSINESS_LAYER],
       [NodeType.BUSINESS_LAYER]: [NodeType.BUSINESS, NodeType.TASK],
       [NodeType.BUSINESS]: [NodeType.TASK, NodeType.EXECUTOR],
-      [NodeType.TASK]: [NodeType.EXECUTOR],
+      [NodeType.TASK]: [NodeType.EXECUTOR, NodeType.TASK],
       [NodeType.EXECUTOR]: [],
     }
     
@@ -866,17 +898,19 @@ export default function OrganizationFlowBoard({
       deletable: edge.deletable
     })))
     
-    // データベースから削除とbusiness_id影響分析処理
+    // データベースから削除（business_id維持）
     let hasSuccess = false
     for (const edge of edgesToDelete) {
-      // データベースからエッジを削除（business_id影響分析付き）
+      // エッジをデータベースから削除（business_idは維持）
       const deleteResult = await NodeDataService.deleteEdge(edge.id, currentUser.company_id)
       if (!deleteResult.success) {
         console.error('❌ EDGE DELETE FAILED:', edge.id, deleteResult.error)
         // TODO: ユーザーにエラー表示
         continue
       } else {
-        console.log('✅ EDGE DELETED WITH IMPACT ANALYSIS:', edge.id)
+        // business_id維持処理（何もしない）
+        const maintainResult = await BusinessIdUpdater.handleEdgeDeletion(edge.source, edge.target)
+        console.log('✅ EDGE DELETED WITH BUSINESS_ID MAINTAINED:', edge.id)
         hasSuccess = true
       }
     }
