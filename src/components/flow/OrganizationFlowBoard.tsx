@@ -84,6 +84,11 @@ export default function OrganizationFlowBoard({
   onNodePositionUpdate,
   selectedMemberId
 }: OrganizationFlowBoardProps) {
+  // エッジの統一デザイン設定
+  const edgeColor = '#4c6ef5' // 青色
+  const edgeStrokeWidth = 2
+  const edgeDashArray = '6,6'
+  
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -267,13 +272,11 @@ export default function OrganizationFlowBoard({
       return // 制約違反の場合は接続を無効化
     }
     
-    // すべての接続線を青色で統一
-    const edgeColor = '#4c6ef5' // 青色
-    const strokeWidth = 2
+    // エッジスタイルを作成
     const edgeStyle = { 
       stroke: edgeColor, 
-      strokeWidth: strokeWidth,
-      strokeDasharray: '2,4'
+      strokeWidth: edgeStrokeWidth,
+      strokeDasharray: edgeDashArray
     }
     
     console.log('🔗 CONNECTING NODES:', params)
@@ -461,8 +464,9 @@ export default function OrganizationFlowBoard({
           target: newNode.id,
           type: 'default',
           style: { 
-            strokeWidth: 2,
-            strokeDasharray: '2,4'
+            stroke: edgeColor,
+            strokeWidth: edgeStrokeWidth,
+            strokeDasharray: edgeDashArray
           },
           animated: true
         }
@@ -1036,15 +1040,16 @@ export default function OrganizationFlowBoard({
         snapToGrid
         snapGrid={[20, 20]}
         connectionLineStyle={{ 
-          stroke: isReconnecting ? '#22c55e' : '#4c6ef5', 
+          stroke: edgeColor, 
           strokeWidth: 3,
-          strokeDasharray: isReconnecting ? '10,5' : '0'
+          strokeDasharray: edgeDashArray
         }}
         defaultEdgeOptions={{
           type: 'default',
           style: { 
-            strokeWidth: 2,
-            strokeDasharray: '2,4'
+            stroke: edgeColor,
+            strokeWidth: edgeStrokeWidth,
+            strokeDasharray: edgeDashArray
           },
           animated: true,
           reconnectable: true,

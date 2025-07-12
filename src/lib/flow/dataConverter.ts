@@ -300,7 +300,7 @@ export class FlowDataConverter {
             style: edge.style || { 
               stroke: '#4c6ef5', 
               strokeWidth: 2,
-              strokeDasharray: '2,4'
+              strokeDasharray: '6,6'
             },
             animated: edge.animated !== undefined ? edge.animated : true,
             reconnectable: edge.reconnectable !== undefined ? edge.reconnectable : true,
