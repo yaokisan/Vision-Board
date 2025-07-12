@@ -13,6 +13,9 @@ interface UpdateResult {
 }
 
 export class BusinessIdUpdater {
+  // business_id取得のキャッシュ
+  private static businessIdCache = new Map<string, string>()
+  
   /**
    * エッジ接続時のbusiness_id自動更新
    */
@@ -85,22 +88,14 @@ export class BusinessIdUpdater {
     const taskUuid = this.extractUuid(taskId)
     const executorUuid = this.extractUuid(executorId)
 
-    // 1. タスクのbusiness_idを取得
-    const { data: taskData, error: taskError } = await supabase
-      .from('tasks')
-      .select('business_id')
-      .eq('id', taskUuid)
-      .single()
-
-    if (taskError) {
-      throw new Error(`Failed to fetch task data: ${taskError.message}`)
-    }
+    // 1. タスクのbusiness_idを取得（キャッシュ利用）
+    const businessId = await this.getTaskBusinessId(taskUuid)
 
     // 2. 実行者のbusiness_idとtask_idを更新
     const { error: executorError } = await supabase
       .from('executors')
       .update({ 
-        business_id: taskData.business_id,
+        business_id: businessId,
         task_id: taskUuid,
         updated_at: new Date().toISOString()
       })
@@ -110,7 +105,7 @@ export class BusinessIdUpdater {
       throw new Error(`Failed to update executor: ${executorError.message}`)
     }
 
-    console.log(`✅ Updated executor ${executorUuid}: business_id=${taskData.business_id}, task_id=${taskUuid}`)
+    console.log(`✅ Updated executor ${executorUuid}: business_id=${businessId}, task_id=${taskUuid}`)
     return [executorId]
   }
 
@@ -121,22 +116,14 @@ export class BusinessIdUpdater {
     const parentUuid = this.extractUuid(parentTaskId)
     const childUuid = this.extractUuid(childTaskId)
 
-    // 1. 親タスクのbusiness_idを取得
-    const { data: parentData, error: parentError } = await supabase
-      .from('tasks')
-      .select('business_id')
-      .eq('id', parentUuid)
-      .single()
-
-    if (parentError) {
-      throw new Error(`Failed to fetch parent task data: ${parentError.message}`)
-    }
+    // 1. 親タスクのbusiness_idを取得（キャッシュ利用）
+    const businessId = await this.getTaskBusinessId(parentUuid)
 
     // 2. 子タスクのbusiness_idを更新（task_idは自身のIDのまま）
     const { error: childError } = await supabase
       .from('tasks')
       .update({ 
-        business_id: parentData.business_id,
+        business_id: businessId,
         updated_at: new Date().toISOString()
       })
       .eq('id', childUuid)
@@ -145,7 +132,7 @@ export class BusinessIdUpdater {
       throw new Error(`Failed to update child task: ${childError.message}`)
     }
 
-    console.log(`✅ Updated child task ${childUuid} business_id to ${parentData.business_id}`)
+    console.log(`✅ Updated child task ${childUuid} business_id to ${businessId}`)
     return [childTaskId]
   }
 
@@ -172,6 +159,90 @@ export class BusinessIdUpdater {
     console.log(`🔄 Overriding data relationship: ${sourceNodeId} → ${targetNodeId}`)
     // 通常の接続処理と同じ（上書き）
     return this.updateBusinessIdOnConnection(sourceNodeId, targetNodeId)
+  }
+
+  /**
+   * タスクのbusiness_idを取得（キャッシュ機能付き）
+   */
+  private static async getTaskBusinessId(taskUuid: string): Promise<string> {
+    // キャッシュから取得を試行
+    if (this.businessIdCache.has(taskUuid)) {
+      return this.businessIdCache.get(taskUuid)!
+    }
+
+    // データベースから取得
+    const { data: taskData, error: taskError } = await supabase
+      .from('tasks')
+      .select('business_id')
+      .eq('id', taskUuid)
+      .single()
+
+    if (taskError) {
+      throw new Error(`Failed to fetch task data: ${taskError.message}`)
+    }
+
+    // キャッシュに保存
+    this.businessIdCache.set(taskUuid, taskData.business_id)
+    return taskData.business_id
+  }
+
+  /**
+   * 複数ノードの一括business_id更新
+   */
+  static async updateMultipleNodes(
+    updates: Array<{ table: string, id: string, business_id: string, task_id?: string }>
+  ): Promise<UpdateResult> {
+    try {
+      const timestamp = new Date().toISOString()
+      const updatedNodes: string[] = []
+
+      // テーブル別にグループ化してバッチ更新
+      const updatesByTable = updates.reduce((acc, update) => {
+        if (!acc[update.table]) {
+          acc[update.table] = []
+        }
+        acc[update.table].push(update)
+        return acc
+      }, {} as Record<string, typeof updates>)
+
+      for (const [table, tableUpdates] of Object.entries(updatesByTable)) {
+        for (const update of tableUpdates) {
+          const updateData: any = { 
+            business_id: update.business_id, 
+            updated_at: timestamp 
+          }
+          
+          if (update.task_id) {
+            updateData.task_id = update.task_id
+          }
+
+          const { error } = await supabase
+            .from(table)
+            .update(updateData)
+            .eq('id', update.id)
+
+          if (error) {
+            throw new Error(`Failed to update ${table} ${update.id}: ${error.message}`)
+          }
+
+          updatedNodes.push(`${table}-${update.id}`)
+        }
+      }
+
+      console.log(`✅ Batch updated ${updatedNodes.length} nodes`)
+      return { success: true, updatedNodes }
+    } catch (error) {
+      console.error('Batch update error:', error)
+      return { success: false, error: String(error) }
+    }
+  }
+
+  /**
+   * キャッシュクリア
+   */
+  static clearCache(): void {
+    this.businessIdCache.clear()
+    console.log('🧹 BusinessIdUpdater cache cleared')
   }
 
   /**

@@ -36,7 +36,7 @@ import { EdgeService } from '@/lib/services/edgeService'
 import AddNodeModal from './AddNodeModal'
 import InlineCardModal from './InlineCardModal'
 import EditNodeModal from './EditNodeModal'
-import DeleteConfirmPopup from './DeleteConfirmPopup'
+import { DeleteConfirmationDialog } from './DeleteConfirmationDialog'
 import CustomEdge from './CustomEdge'
 import NodeToolbar from './NodeToolbar'
 
@@ -97,12 +97,14 @@ export default function OrganizationFlowBoard({
     isOpen: boolean; 
     nodeId: string; 
     position: { x: number; y: number }; 
-    nodeLabel: string 
+    nodeLabel: string;
+    relatedEdgesCount: number;
   }>({
     isOpen: false,
     nodeId: '',
     position: { x: 0, y: 0 },
-    nodeLabel: ''
+    nodeLabel: '',
+    relatedEdgesCount: 0
   })
 
   // 接続線再接続の状態管理
@@ -654,6 +656,11 @@ export default function OrganizationFlowBoard({
       const node = nodes.find(n => n.id === nodeId)
       const nodeLabel = node?.data?.label || node?.data?.entity?.name || 'ノード'
       
+      // 関連エッジ数を計算
+      const relatedEdgesCount = edges.filter(edge => 
+        edge.source === nodeId || edge.target === nodeId
+      ).length
+      
       let position = { x: 300, y: 300 }
       if (event) {
         const rect = (event.target as HTMLElement).getBoundingClientRect()
@@ -667,10 +674,11 @@ export default function OrganizationFlowBoard({
         isOpen: true,
         nodeId,
         position,
-        nodeLabel
+        nodeLabel,
+        relatedEdgesCount
       })
     },
-    [nodes]
+    [nodes, edges]
   )
 
   // 削除確認ハンドラー
@@ -694,12 +702,12 @@ export default function OrganizationFlowBoard({
     setNodes((nds) => nds.filter(node => node.id !== nodeId))
     // 関連するエッジを削除
     setEdges((eds) => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId))
-    setDeleteConfirm({ isOpen: false, nodeId: '', position: { x: 0, y: 0 }, nodeLabel: '' })
+    setDeleteConfirm({ isOpen: false, nodeId: '', position: { x: 0, y: 0 }, nodeLabel: '', relatedEdgesCount: 0 })
   }, [deleteConfirm, setNodes, setEdges])
 
   // 削除キャンセルハンドラー
   const handleCancelDelete = useCallback(() => {
-    setDeleteConfirm({ isOpen: false, nodeId: '', position: { x: 0, y: 0 }, nodeLabel: '' })
+    setDeleteConfirm({ isOpen: false, nodeId: '', position: { x: 0, y: 0 }, nodeLabel: '', relatedEdgesCount: 0 })
   }, [])
 
   // ドラッグ&ドロップでノード追加
@@ -1132,13 +1140,14 @@ export default function OrganizationFlowBoard({
         tasks={tasks}
       />
 
-      {/* 削除確認ポップアップ */}
-      <DeleteConfirmPopup
+      {/* 削除確認ダイアログ */}
+      <DeleteConfirmationDialog
         isOpen={deleteConfirm.isOpen}
-        position={deleteConfirm.position}
+        nodeId={deleteConfirm.nodeId}
+        nodeName={deleteConfirm.nodeLabel}
+        relatedEdgesCount={deleteConfirm.relatedEdgesCount}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
-        nodeLabel={deleteConfirm.nodeLabel}
       />
     </div>
   )
