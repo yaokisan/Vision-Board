@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import { OrganizationDataService, OrganizationData } from '@/lib/services/organizationDataService'
 import { NodePositionService } from '@/lib/services/nodePositionService'
+import MemoPanel from '@/components/memo/MemoPanel'
 
 function DashboardContent() {
   const { user, member: currentUser, signOut } = useAuth()
@@ -20,6 +21,50 @@ function DashboardContent() {
   const [nodePositionsByTab, setNodePositionsByTab] = useState<Record<string, Record<string, { x: number; y: number }>>>({
     company: {}
   })
+
+  // メモパネル状態
+  const [isMemoOpen, setIsMemoOpen] = useState(false)
+  const [memoPanelWidth, setMemoPanelWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth * 0.25 : 400
+  )
+
+  // メモパネル状態をlocalStorageから復元
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedOpen = localStorage.getItem('memo-panel-open')
+      const savedWidth = localStorage.getItem('memo-panel-width')
+      
+      if (savedOpen !== null) {
+        setIsMemoOpen(savedOpen === 'true')
+      }
+      if (savedWidth !== null) {
+        setMemoPanelWidth(Number(savedWidth))
+      }
+    }
+  }, [])
+
+  // メモパネル状態変更時にlocalStorageに保存
+  const handleMemoToggle = () => {
+    const newOpen = !isMemoOpen
+    setIsMemoOpen(newOpen)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('memo-panel-open', String(newOpen))
+    }
+  }
+
+  const handleMemoWidthChange = (newWidth: number) => {
+    setMemoPanelWidth(newWidth)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('memo-panel-width', String(newWidth))
+    }
+  }
+
+  const handleMemoClose = () => {
+    setIsMemoOpen(false)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('memo-panel-open', 'false')
+    }
+  }
 
   // 組織データを取得
   useEffect(() => {
@@ -159,6 +204,21 @@ function DashboardContent() {
                   ))}
                 </nav>
                 
+                {/* メモボタン */}
+                <button
+                  onClick={handleMemoToggle}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isMemoOpen 
+                      ? 'text-blue-600 bg-blue-50' 
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-white'
+                  }`}
+                  title="メモ"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
+
                 {/* 設定ボタン */}
                 <Link 
                   href="/settings"
@@ -204,6 +264,14 @@ function DashboardContent() {
           selectedBusinessId={selectedBusiness}
           nodePositions={nodePositionsByTab[getCurrentTabKey()]}
           onNodePositionUpdate={handleNodePositionUpdate}
+        />
+        
+        {/* メモパネル */}
+        <MemoPanel
+          isOpen={isMemoOpen}
+          onClose={handleMemoClose}
+          width={memoPanelWidth}
+          onWidthChange={handleMemoWidthChange}
         />
       </main>
     </ReactFlowProvider>

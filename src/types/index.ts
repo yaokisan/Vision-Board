@@ -190,3 +190,10 @@ export interface DragItem {
   position_x: number;
   position_y: number;
 }
+
+export interface Note {
+  id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}

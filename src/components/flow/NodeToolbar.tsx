@@ -54,9 +54,17 @@ const toolbarItems: ToolbarItem[] = [
 
 export default function NodeToolbar(_: NodeToolbarProps) {
   const [draggedItem, setDraggedItem] = useState<ToolbarItem | null>(null)
-  const [scale, setScale] = useState<number>(1) // スケール（1が初期サイズ）
+  const [scale, setScale] = useState<number>(() => {
+    // localStorageからリサイズ状態を復元
+    if (typeof window !== 'undefined') {
+      const savedScale = localStorage.getItem('node-toolbar-scale')
+      return savedScale ? Number(savedScale) : 1
+    }
+    return 1
+  })
   const [isResizing, setIsResizing] = useState(false)
-  const [resizeCorner, setResizeCorner] = useState<string>('') // どのコーナーからリサイズしているか
+  const [isHovered, setIsHovered] = useState(false)
+  const [resizeCorner, setResizeCorner] = useState<string>('')
   const panelRef = useRef<HTMLDivElement>(null)
   const resizeRef = useRef<{ 
     startX: number; 
@@ -137,6 +145,11 @@ export default function NodeToolbar(_: NodeToolbarProps) {
       const scaleDelta = delta / Math.max(resizeRef.current.initialWidth, resizeRef.current.initialHeight)
       const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, resizeRef.current.startScale + scaleDelta))
       setScale(newScale)
+      
+      // localStorageに保存
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('node-toolbar-scale', String(newScale))
+      }
     }
 
     const handleMouseUp = () => {
@@ -163,34 +176,36 @@ export default function NodeToolbar(_: NodeToolbarProps) {
           transformOrigin: 'top left',
           transition: isResizing ? 'none' : 'transform 0.2s ease'
         }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* 四隅のリサイズハンドル */}
+        {/* 四隅のリサイズハンドル - ホバーまたはリサイズ中のみ表示 */}
         {/* 左上 */}
         <div
-          className={`absolute -top-1 -left-1 w-3 h-3 cursor-nw-resize rounded-full ${
+          className={`absolute -top-1 -left-1 w-3 h-3 cursor-nw-resize rounded-full transition-opacity duration-200 ${
             isResizing && resizeCorner === 'nw' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
-          } transition-colors`}
+          } ${(isHovered || isResizing) ? 'opacity-100' : 'opacity-0'}`}
           onMouseDown={(e) => handleResizeStart(e, 'nw')}
         />
         {/* 右上 */}
         <div
-          className={`absolute -top-1 -right-1 w-3 h-3 cursor-ne-resize rounded-full ${
+          className={`absolute -top-1 -right-1 w-3 h-3 cursor-ne-resize rounded-full transition-opacity duration-200 ${
             isResizing && resizeCorner === 'ne' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
-          } transition-colors`}
+          } ${(isHovered || isResizing) ? 'opacity-100' : 'opacity-0'}`}
           onMouseDown={(e) => handleResizeStart(e, 'ne')}
         />
         {/* 左下 */}
         <div
-          className={`absolute -bottom-1 -left-1 w-3 h-3 cursor-sw-resize rounded-full ${
+          className={`absolute -bottom-1 -left-1 w-3 h-3 cursor-sw-resize rounded-full transition-opacity duration-200 ${
             isResizing && resizeCorner === 'sw' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
-          } transition-colors`}
+          } ${(isHovered || isResizing) ? 'opacity-100' : 'opacity-0'}`}
           onMouseDown={(e) => handleResizeStart(e, 'sw')}
         />
         {/* 右下 */}
         <div
-          className={`absolute -bottom-1 -right-1 w-3 h-3 cursor-se-resize rounded-full ${
+          className={`absolute -bottom-1 -right-1 w-3 h-3 cursor-se-resize rounded-full transition-opacity duration-200 ${
             isResizing && resizeCorner === 'se' ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-500'
-          } transition-colors`}
+          } ${(isHovered || isResizing) ? 'opacity-100' : 'opacity-0'}`}
           onMouseDown={(e) => handleResizeStart(e, 'se')}
         />
         
