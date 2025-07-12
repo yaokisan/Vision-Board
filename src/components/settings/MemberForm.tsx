@@ -79,6 +79,12 @@ export function MemberForm({ mode, member, companyId, onSubmit, onCancel }: Memb
       } else {
         // 編集の場合は変更された項目のみ送信
         const updateData: any = {}
+        if (formData.name !== member?.name) {
+          updateData.name = formData.name.trim()
+        }
+        if (formData.email !== member?.email) {
+          updateData.email = formData.email.trim() || undefined
+        }
         if (formData.permission !== member?.permission) {
           updateData.permission = formData.permission
         }
@@ -120,10 +126,10 @@ export function MemberForm({ mode, member, companyId, onSubmit, onCancel }: Memb
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
-                disabled={mode === 'edit'}
+                disabled={false}
                 className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  mode === 'edit' ? 'bg-gray-50 text-gray-500' : ''
-                } ${errors.name ? 'border-red-300' : 'border-gray-300'}`}
+                  errors.name ? 'border-red-300' : 'border-gray-300'
+                }`}
               />
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name}</p>
@@ -140,11 +146,11 @@ export function MemberForm({ mode, member, companyId, onSubmit, onCancel }: Memb
                 id="email"
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
-                disabled={mode === 'edit'}
+                disabled={false}
                 placeholder="example@company.com"
                 className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  mode === 'edit' ? 'bg-gray-50 text-gray-500' : ''
-                } ${errors.email ? 'border-red-300' : 'border-gray-300'}`}
+                  errors.email ? 'border-red-300' : 'border-gray-300'
+                }`}
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>

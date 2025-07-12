@@ -358,6 +358,110 @@ export class OrganizationDAO {
   }
 
   // ============================================
+  // カスケード更新メソッド（メンバー名変更用）
+  // ============================================
+
+  /**
+   * 役職の person_name をメンバーIDで一括更新
+   */
+  static async updatePositionPersonName(memberId: string, newName: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('positions')
+        .update({ 
+          person_name: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('member_id', memberId)
+
+      if (error) {
+        console.error('役職名前更新エラー:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('役職名前更新例外:', error)
+      return false
+    }
+  }
+
+  /**
+   * 事業の responsible_person をメンバーIDで一括更新
+   */
+  static async updateBusinessResponsiblePersonName(memberId: string, newName: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ 
+          responsible_person: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('responsible_person_id', memberId)
+
+      if (error) {
+        console.error('事業責任者名前更新エラー:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('事業責任者名前更新例外:', error)
+      return false
+    }
+  }
+
+  /**
+   * 業務の responsible_person をメンバーIDで一括更新
+   */
+  static async updateTaskResponsiblePersonName(memberId: string, newName: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          responsible_person: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('responsible_person_id', memberId)
+
+      if (error) {
+        console.error('業務責任者名前更新エラー:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('業務責任者名前更新例外:', error)
+      return false
+    }
+  }
+
+  /**
+   * 実行者の name をメンバーIDで一括更新
+   */
+  static async updateExecutorName(memberId: string, newName: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('executors')
+        .update({ 
+          name: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('member_id', memberId)
+
+      if (error) {
+        console.error('実行者名前更新エラー:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('実行者名前更新例外:', error)
+      return false
+    }
+  }
+
+  // ============================================
   // 参照先名前の取得（汎用）
   // ============================================
 

@@ -301,6 +301,45 @@ export class MemberService {
   }
 
   /**
+   * メンバー名を更新（カスケード更新付き）
+   */
+  static async updateMemberName(memberId: string, newName: string): Promise<MemberOperationResult> {
+    try {
+      const member = await this.getMemberById(memberId)
+      if (!member) {
+        return { success: false }
+      }
+
+      const trimmedName = newName.trim()
+      if (!trimmedName) {
+        return { success: false }
+      }
+
+      // 1. メンバーテーブルの名前を更新
+      const updatedMember = await MemberDAO.updateMember(memberId, {
+        name: trimmedName
+      })
+      if (!updatedMember) {
+        throw new Error('メンバー名前更新に失敗しました')
+      }
+
+      // 2. カスケード更新: 関連テーブルのキャッシュされた名前を更新
+      await this.updateCachedMemberNames(memberId, trimmedName)
+
+      return {
+        success: true,
+        member: updatedMember,
+        requires_reload: true // 名前変更は表示に影響するためリロードが必要
+      }
+    } catch (error) {
+      console.error('メンバー名前更新エラー:', error)
+      return {
+        success: false
+      }
+    }
+  }
+
+  /**
    * 権限を更新
    */
   static async updatePermission(memberId: string, permission: string): Promise<MemberOperationResult> {
@@ -334,6 +373,29 @@ export class MemberService {
       return {
         success: false
       }
+    }
+  }
+
+  /**
+   * カスケード更新: 関連テーブルのキャッシュされた名前を更新
+   */
+  private static async updateCachedMemberNames(memberId: string, newName: string): Promise<void> {
+    try {
+      // 1. positions テーブルの person_name を更新
+      await OrganizationDAO.updatePositionPersonName(memberId, newName)
+      
+      // 2. businesses テーブルの responsible_person を更新
+      await OrganizationDAO.updateBusinessResponsiblePersonName(memberId, newName)
+      
+      // 3. tasks テーブルの responsible_person を更新
+      await OrganizationDAO.updateTaskResponsiblePersonName(memberId, newName)
+      
+      // 4. executors テーブルの name を更新
+      await OrganizationDAO.updateExecutorName(memberId, newName)
+      
+    } catch (error) {
+      console.error('カスケード更新エラー:', error)
+      throw error
     }
   }
 

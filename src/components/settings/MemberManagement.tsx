@@ -79,17 +79,45 @@ export function MemberManagement({ currentUser }: MemberManagementProps) {
   }
 
   // メンバー編集
-  const handleEditMember = async (memberId: string, updates: { permission?: string; member_type?: string }) => {
+  const handleEditMember = async (memberId: string, updates: { name?: string; email?: string; permission?: string; member_type?: string }) => {
     try {
-      if (updates.permission) {
-        const result = await MemberService.updatePermission(memberId, updates.permission)
-        if (result.success && result.member) {
-          setMembers(prev => prev.map(m => m.id === memberId ? result.member! : m))
-          setEditingMember(null)
-          setMessage({ type: 'success', text: 'メンバー情報を更新しました' })
-        } else {
-          setMessage({ type: 'error', text: 'メンバー情報の更新に失敗しました' })
+      let result = null
+      
+      // 名前の更新
+      if (updates.name) {
+        result = await MemberService.updateMemberName(memberId, updates.name)
+        if (!result.success) {
+          setMessage({ type: 'error', text: 'メンバー名の更新に失敗しました' })
+          return
         }
+      }
+      
+      // その他の項目の更新
+      if (updates.email || updates.permission || updates.member_type) {
+        const updateData: any = {}
+        if (updates.email !== undefined) updateData.email = updates.email
+        if (updates.permission) updateData.permission = updates.permission
+        if (updates.member_type) updateData.member_type = updates.member_type
+        
+        const updateResult = await MemberDAO.updateMember(memberId, updateData)
+        if (updateResult) {
+          result = { success: true, member: updateResult }
+        }
+      }
+      
+      if (result && result.success && result.member) {
+        setMembers(prev => prev.map(m => m.id === memberId ? result.member! : m))
+        setEditingMember(null)
+        setMessage({ type: 'success', text: 'メンバー情報を更新しました' })
+        
+        // 名前変更の場合はページリロードが必要
+        if (updates.name && result.requires_reload) {
+          setTimeout(() => {
+            window.location.reload()
+          }, 1500)
+        }
+      } else {
+        setMessage({ type: 'error', text: 'メンバー情報の更新に失敗しました' })
       }
     } catch (error) {
       console.error('メンバー更新エラー:', error)
