@@ -63,6 +63,8 @@ interface OrganizationFlowBoardProps {
   // タブ別ノード位置保持機能
   nodePositions?: Record<string, { x: number; y: number }>
   onNodePositionUpdate?: (nodeId: string, position: { x: number; y: number }) => void
+  // メンバーフィルター機能
+  selectedMemberId?: string | null
 }
 
 export default function OrganizationFlowBoard({
@@ -77,7 +79,8 @@ export default function OrganizationFlowBoard({
   viewMode = 'company' as 'company' | 'business',
   selectedBusinessId,
   nodePositions = {},
-  onNodePositionUpdate
+  onNodePositionUpdate,
+  selectedMemberId
 }: OrganizationFlowBoardProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
@@ -202,6 +205,47 @@ export default function OrganizationFlowBoard({
       console.error('Data reload error:', error)
     }
   }, [companies, positions, layers, businesses, tasks, executors, currentUser.company_id, viewMode, selectedBusinessId, setNodes, setEdges])
+
+  // メンバーフィルター適用ロジック
+  const filteredNodes = useMemo(() => {
+    if (!selectedMemberId) return nodes // フィルター未選択時は全ノード表示
+    
+    return nodes.map(node => {
+      const entity = node.data.entity
+      let isRelatedToMember = false
+      
+      // ノードタイプごとにメンバー関連性をチェック
+      switch (node.type) {
+        case NodeType.CXO:
+          isRelatedToMember = entity.member_id === selectedMemberId
+          break
+        case NodeType.BUSINESS:
+          isRelatedToMember = entity.responsible_person_id === selectedMemberId
+          break
+        case NodeType.TASK:
+          isRelatedToMember = entity.responsible_person_id === selectedMemberId
+          break
+        case NodeType.EXECUTOR:
+          isRelatedToMember = entity.member_id === selectedMemberId
+          break
+        case NodeType.COMPANY:
+        case NodeType.BUSINESS_LAYER:
+        case NodeType.CXO_LAYER:
+          isRelatedToMember = true // 構造ノードは常に表示
+          break
+        default:
+          isRelatedToMember = true // その他のノードも常に表示
+      }
+      
+      return {
+        ...node,
+        style: {
+          ...node.style,
+          opacity: isRelatedToMember ? 1.0 : 0.2
+        }
+      }
+    })
+  }, [nodes, selectedMemberId])
 
   // エッジ接続ハンドラー
   const onConnect = useCallback(async (params: Connection) => {
@@ -904,7 +948,7 @@ export default function OrganizationFlowBoard({
         
       `}</style>
       <ReactFlow
-        nodes={nodes}
+        nodes={filteredNodes}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}

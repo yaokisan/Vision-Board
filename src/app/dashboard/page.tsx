@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { OrganizationDataService, OrganizationData } from '@/lib/services/organizationDataService'
 import { NodePositionService } from '@/lib/services/nodePositionService'
 import MemoPanel from '@/components/memo/MemoPanel'
+import MemberFilter from '@/components/filters/MemberFilter'
 
 function DashboardContent() {
   const { user, member: currentUser, signOut } = useAuth()
@@ -64,6 +65,16 @@ function DashboardContent() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('memo-panel-open', 'false')
     }
+  }
+
+  // メンバーフィルター状態
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+
+  // タブ切り替え時にフィルターをリセット
+  const handleTabChange = (newViewMode: 'company' | 'business', businessId?: string | null) => {
+    setViewMode(newViewMode)
+    setSelectedBusiness(businessId || null)
+    setSelectedMemberId(null) // フィルターリセット
   }
 
   // 組織データを取得
@@ -172,10 +183,7 @@ function DashboardContent() {
               <div className="flex items-center space-x-6">
                 <nav className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm">
                   <button 
-                    onClick={() => {
-                      setViewMode('company')
-                      setSelectedBusiness(null)
-                    }}
+                    onClick={() => handleTabChange('company')}
                     className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                       viewMode === 'company' 
                         ? 'text-blue-600 bg-blue-50' 
@@ -189,10 +197,7 @@ function DashboardContent() {
                   {organizationData.businesses.map((business) => (
                     <button 
                       key={business.id}
-                      onClick={() => {
-                        setViewMode('business')
-                        setSelectedBusiness(business.id)
-                      }}
+                      onClick={() => handleTabChange('business', business.id)}
                       className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         viewMode === 'business' && selectedBusiness === business.id
                           ? 'text-blue-600 bg-blue-50' 
@@ -203,6 +208,14 @@ function DashboardContent() {
                     </button>
                   ))}
                 </nav>
+                
+                {/* メンバーフィルター */}
+                <MemberFilter
+                  members={organizationData.members}
+                  selectedMemberId={selectedMemberId}
+                  onMemberSelect={setSelectedMemberId}
+                  className="hidden md:block" // モバイルでは非表示
+                />
                 
                 {/* メモボタン */}
                 <button
@@ -264,6 +277,7 @@ function DashboardContent() {
           selectedBusinessId={selectedBusiness}
           nodePositions={nodePositionsByTab[getCurrentTabKey()]}
           onNodePositionUpdate={handleNodePositionUpdate}
+          selectedMemberId={selectedMemberId}
         />
         
         {/* メモパネル */}

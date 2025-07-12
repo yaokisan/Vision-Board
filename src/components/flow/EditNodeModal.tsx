@@ -326,14 +326,41 @@ export default function EditNodeModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">実行者名</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="例: 鈴木次郎"
-                required
+              <MemberSelector
+                members={members}
+                selectedMemberId={formData.member_id}
+                onSelect={(memberId) => {
+                  const selectedMember = members.find(m => m.id === memberId)
+                  setFormData({ 
+                    ...formData, 
+                    member_id: memberId,
+                    name: selectedMember?.name || '',
+                    needs_migration: false // 新しく選択したデータは移行不要
+                  })
+                }}
+                placeholder="実行者を選択..."
+                searchable={true}
+                className="w-full"
               />
+              {/* 移行が必要なデータの警告表示 */}
+              {formData.needs_migration && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                  <div className="flex items-start">
+                    <svg className="w-4 h-4 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-sm text-yellow-800 font-medium">データ更新が必要</p>
+                      <p className="text-xs text-yellow-600 mt-1">
+                        このデータは古い形式です。上記のドロップダウンから実行者を選択し直してください。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                この業務を実行するメンバーを選択してください
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">所属業務</label>

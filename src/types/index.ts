@@ -62,6 +62,8 @@ export interface Executor {
   task_id: string;
   name: string;
   role: string;
+  member_id?: string; // メンバーテーブルへの参照（新形式）
+  needs_migration?: boolean; // 手動での再選択が必要なレガシーデータフラグ
   position_x: number;
   position_y: number;
   created_at: string;

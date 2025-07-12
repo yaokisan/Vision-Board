@@ -143,6 +143,8 @@ export class NodeDataService {
         task_id: taskId, // 実際のスキーマに存在
         name: nodeData.data.name || 'New Executor',
         role: nodeData.data.role || '',
+        member_id: nodeData.data.member_id || null, // メンバー参照を追加
+        needs_migration: false, // 新規作成データは移行不要
         business_id: this.extractBusinessIdFromParent(nodeData.parentNodeId), // 親ノードからbusiness_idを取得
         position_x: nodeData.position.x,
         position_y: nodeData.position.y,
@@ -421,6 +423,8 @@ export class NodeDataService {
               name: updatedData.name,
               role: updatedData.role,
               task_id: updatedData.task_id,
+              member_id: updatedData.member_id || null, // メンバー参照を追加
+              needs_migration: updatedData.needs_migration || false, // 移行フラグを追加
               updated_at: timestamp
             })
             .eq('id', id)
