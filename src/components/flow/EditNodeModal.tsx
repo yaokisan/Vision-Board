@@ -40,7 +40,8 @@ export default function EditNodeModal({
     type: '',
     color: '',
     business_id: null as string | null, // business_id統合用
-    task_id: null as string | null
+    task_id: null as string | null,
+    needs_migration: false // 実行者の移行フラグ
   })
 
   useEffect(() => {
@@ -60,7 +61,8 @@ export default function EditNodeModal({
         type: data.type || entity.type || '',
         color: data.color || entity.color || '',
         business_id: entity.business_id || data.business_id || null, // business_id統合用
-        task_id: entity.task_id || data.task_id || null
+        task_id: entity.task_id || data.task_id || null,
+        needs_migration: entity.needs_migration || false // 実行者の移行フラグ
       })
     }
   }, [nodeData, businesses])
